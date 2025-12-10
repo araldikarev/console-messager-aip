@@ -1,9 +1,13 @@
 ﻿import asyncio
 import json
-from dto.models import LoginRequest, RegisterRequest, ServerResponse
-from pydantic import ValidationError
+from server.framework import ServerRouter, ServerContext
+from server.controllers.auth import AuthController
+
+router = ServerRouter()
+router.register(AuthController)
 
 async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+    ctx = ServerContext(reader, writer)
     address = writer.get_extra_info("peername")
     print(f"Подключение от {address}")
 
@@ -18,38 +22,10 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 
             try:
                 base_data = json.loads(message_str)
+                await router.dispatch(ctx, base_data)
             except json.JSONDecodeError:
                 print("Недействительный JSON")
                 continue
-
-            match base_data.get("action"):
-                case "login":
-                    try:
-                        request = LoginRequest.model_validate(base_data)
-                        print(f"Попытка логина со следующими данными: {request}")
-
-                        # Сделать проверку на существование логина
-                        # Сделать проверку на соответствие хеша паролей
-
-                        
-                        response = ServerResponse(action="success", data="Успешный вход (ФЕЙК)")
-                    except ValidationError as e:
-                        response = ServerResponse(action="error", data=str(e))
-                case "register":
-                    try:
-                        request = RegisterRequest.model_validate(base_data)
-                        print(f"Попытка регистрации со следующими данными: {request}")
-                        # Сделать проверку на существование логина
-
-                        
-                        response = ServerResponse(action="success", data="Успешная регистрация (ФЕЙК)")
-                    except ValidationError as e:
-                        response = ServerResponse(action="error", data=str(e))
-
-            if response:
-                response_str = response.model_dump_json() + '\n'
-                writer.write(response_str.encode('utf-8'))
-                await writer.drain()
 
     except Exception as ex:
         print(f"Произошла непредвиденная ошибка: {ex}")

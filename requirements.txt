@@ -1,2 +1,4 @@
 ﻿pydantic
 asyncio
+sqlmodel
+aiosqlite
