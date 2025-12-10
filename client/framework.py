@@ -1,0 +1,128 @@
+﻿import inspect
+import asyncio
+from typing import Callable, Any, Dict, List
+from pydantic import BaseModel
+
+class Context:
+    def __init__(self, writer: asyncio.StreamWriter):
+        self._writer = writer
+
+    async def send(self, packet: BaseModel):
+        data_str = packet.model_dump_json()
+
+        # Шифрование
+
+
+        payload = (data_str + '\n').encode('utf-8')
+        self._writer.write(payload)
+        await self._writer.drain()
+
+
+# декоратор
+def command(name: str):
+    def decorator(target):
+        target._cmd_name = name
+        target._is_command_node = True
+        return target
+    return decorator
+
+class CommandNode:
+    def __init__(self, name: str, handler: Callable = None):
+        self.name = name
+        self.children: Dict[str, "CommandNode"] = {}
+        self.handler = handler
+        self.is_group = handler is None
+
+    def add_child(self, node: "CommandNode"):
+        self.children[node.name] = node
+
+
+
+class CommandRouter:
+    def __init__(self, ctx: Context):
+        self.ctx = ctx
+        self.root = CommandNode("root")
+    
+    def register_controller(self, controller_cls):
+        """
+        Точка входа регистрации контроллера. Строит из класса ветку.
+        """
+        self._scan_recursive(controller_cls, self.root)
+
+    def _scan_recursive(self, cls_def, parent_node: CommandNode):
+
+        instance = cls_def(self.ctx)
+
+        current_node = parent_node
+        cls_name = getattr(cls_def, "_cmd_name", None)
+
+        if cls_name:
+            if cls_name not in parent_node.children:
+                group_node = CommandNode(cls_name)
+                self.root.add_child(group_node)
+            parent_node = parent_node.children[cls_name]
+            print(f"[ROUTER] Группа: {cls_name}")
+        
+        # Поиск методов-команд
+        for name, member in inspect.getmembers(instance, predicate=inspect.ismethod):
+            if getattr(member, "_is_command_node", False):
+                cmd_name = getattr(member, "_cmd_name")
+                leaf_node = CommandNode(cmd_name, handler=member)
+                current_node.add_child(leaf_node)
+                print(f"... -> Метод: {cmd_name}")
+
+        # Поиск подклассов-команд
+        for name, member in inspect.getmembers(instance, predicate=inspect.isclass):
+            if getattr(member, "_is_command_node", False):
+                self._scan_recursive(member, current_node)
+        
+    async def dispatch(self, line: str):
+        parts = line.strip().split()
+        if not parts: return
+
+        if parts[0].startswith('/'):
+            parts[0] = parts[0][1:]
+        
+        # Роутинг по нодам
+        node = self.root
+        idx = 0
+        while idx < len(parts):
+            token = parts[idx].lower()
+            if token in node.children:
+                node = node.children[token]
+                idx += 1
+            else:
+                break
+        
+        if node.is_group:
+            options = list(node.children.keys())
+            print(f"Выберите нужную команду: {options}")
+
+        # Вычленение аргументов для найденной команды
+        raw_args = parts[idx:]
+        handler = node.handler
+        signature = inspect.signature(handler)
+        params = list(signature.parameters.values())
+
+        if len(raw_args) != len(params):
+            hint = " ".join([f"<{p.name}:{p.annotation.__name__}>" for p in params])
+            print(f"Ошибка аргументов. Формат: ... {node.name} {hint}")
+            return
+        
+        # Конвертация аргументов
+        try:
+            converted_args = []
+            for i, param in enumerate(params):
+                print(i, param)
+                value = raw_args[i]
+                target_type = param.annotation
+                if target_type is not inspect.Parameter.empty:
+                    converted_args.append(target_type(value))
+                else:
+                    converted_args.append(value)
+
+            await handler(*converted_args)
+        except ValueError as e:
+            print(f"Неверный тип данных: {e}")
+        except Exception as e:
+            print(f"Ошибка выполнения: {e}")
