@@ -1,14 +1,15 @@
 ﻿import asyncio
 import inspect
-import json
-from typing import Callable, Dict, Any, Type
+from typing import Callable, Dict, Type
 from pydantic import BaseModel, ValidationError
 from dto.models import ServerResponse
+from sqlalchemy.ext.asyncio import AsyncSession 
 
 class ServerContext:
-    def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+    def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, db_session_maker):
         self.reader = reader
         self.writer = writer
+        self.db_session_maker = db_session_maker
         self.peer_name = writer.get_extra_info("peername")
     
     async def reply(self, status: str, data: str | None = None):
@@ -24,6 +25,9 @@ class ServerContext:
     
     async def reply_success(self, success_message: str):
         await self.reply("success", success_message)
+
+    def create_session(self) -> AsyncSession:
+        return self.db_session_maker()
 
 def action(name: str):
     def decorator(func):

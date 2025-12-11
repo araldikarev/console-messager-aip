@@ -2,12 +2,13 @@
 import json
 from server.framework import ServerRouter, ServerContext
 from server.controllers.auth import AuthController
+from server.database import init_db, async_session
 
 router = ServerRouter()
 router.register(AuthController)
 
 async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-    ctx = ServerContext(reader, writer)
+    ctx = ServerContext(reader, writer, async_session)
     address = writer.get_extra_info("peername")
     print(f"Подключение от {address}")
 
@@ -35,6 +36,8 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
         await writer.wait_closed()
 
 async def main():
+    await init_db()
+
     server = await asyncio.start_server(handle_client, "127.0.0.1", 12000)
     async with server:
         print("Поднятие сервера!")

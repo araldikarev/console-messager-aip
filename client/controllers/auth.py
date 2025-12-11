@@ -1,16 +1,20 @@
 ﻿from client.controllers.base import BaseController
 from client.framework import command
 from dto.models import LoginRequest, RegisterRequest
+import hashlib
 
 class AuthController(BaseController):
+
+    def _hash_password(self, password: str) -> str:
+        """Метод для SHA256 хеширования пароля."""
+        salted_pwd = password + "123451969"
+        return hashlib.sha256(salted_pwd.encode('utf-8')).hexdigest()
 
     @command("login")
     async def login(self, login: str, password: str):
         print(f"Введен Login на логинизацию: {login}")
 
-        # Реализовать хеширование
-        passwordHash = password + "HASHED"*10
-        request = LoginRequest(login=login, passwordHash=passwordHash)
+        request = LoginRequest(login=login, passwordHash=self._hash_password(password))
 
         await self.ctx.send(request)
 
@@ -18,9 +22,7 @@ class AuthController(BaseController):
     async def register(self, login: str, username: str, password: str):
         print(f"Введен Login на регистрацию: {login}")
 
-        # Реализовать хеширование
-        passwordHash = password + "HASHED"*10
-        request = RegisterRequest(login=login, username=username, passwordHash=passwordHash)
+        request = RegisterRequest(login=login, username=username, passwordHash=self._hash_password(password))
 
         await self.ctx.send(request)
     
