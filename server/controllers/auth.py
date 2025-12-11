@@ -22,7 +22,7 @@ class AuthController(BaseController):
                 await self.ctx.reply_error("Не найден пользователь!")
                 return
             
-            if user.password_hash != req.passwordHash:
+            if user.password_hash != req.password_hash:
                 await self.ctx.reply_error("Неверный пароль!")
                 return
             
@@ -37,7 +37,7 @@ class AuthController(BaseController):
             new_user = User(
                 login=req.login,
                 username=req.username,
-                password_hash=req.passwordHash
+                password_hash=req.password_hash
             )
 
             try:

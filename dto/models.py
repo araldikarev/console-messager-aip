@@ -8,12 +8,12 @@ class RegisterRequest(BasePacket):
     action: Literal["register"] = "register"
     login: str = Field(..., min_length=3, max_length=20)
     username: str = Field(..., min_length=3, max_length=50)
-    passwordHash: str = Field(..., min_length=20)
+    password_hash: str = Field(..., min_length=20)
 
 class LoginRequest(BasePacket):
     action: Literal["login"] = "login"
     login: str = Field(..., min_length=3, max_length=20)
-    passwordHash: str = Field(..., min_length=20)
+    password_hash: str = Field(..., min_length=20)
 
 class SendMessageRequest(BasePacket):
     action: Literal["message"] = "message"
