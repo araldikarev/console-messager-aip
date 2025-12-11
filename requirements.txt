@@ -2,3 +2,5 @@
 asyncio
 sqlmodel
 aiosqlite
+cryptography 
+python-dotenv

@@ -6,15 +6,21 @@ from pydantic import BaseModel
 class Context:
     def __init__(self, writer: asyncio.StreamWriter):
         self._writer = writer
+        self.cipher = None
 
     async def send(self, packet: BaseModel):
         data_str = packet.model_dump_json()
 
         # Шифрование
+        if self.cipher:
+            raw_bytes = data_str.encode('utf-8')
 
-
-        payload = (data_str + '\n').encode('utf-8')
-        self._writer.write(payload)
+            encrypted_payload = self.cipher.encrypt(raw_bytes)
+            self._writer.write(encrypted_payload + b"\n")
+        else:
+            payload = (data_str + '\n').encode('utf-8')
+            self._writer.write(payload)
+            
         await self._writer.drain()
 
 

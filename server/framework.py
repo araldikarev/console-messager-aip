@@ -11,13 +11,19 @@ class ServerContext:
         self.writer = writer
         self.db_session_maker = db_session_maker
         self.peer_name = writer.get_extra_info("peername")
+        self.cipher = None
     
     async def reply(self, status: str, data: str | None = None):
         """Ответ клиенту"""
         response = ServerResponse(action=status, data=data)
+        json_str = response.model_dump_json()
 
-        payload = response.model_dump_json() + '\n'
-        self.writer.write(payload.encode('utf-8'))
+        if self.cipher:
+            encrypted_payload = self.cipher.encrypt(json_str.encode('utf-8'))
+            self.writer.write(encrypted_payload + b"\n")
+        else: 
+            payload = json_str + '\n'
+            self.writer.write(payload.encode('utf-8'))
         await self.writer.drain()
 
     async def reply_error(self, error_messgage: str):
