@@ -2,6 +2,7 @@
 import asyncio
 from typing import Callable, Any, Dict, List
 from pydantic import BaseModel
+from client.logger import *
 
 class Context:
     def __init__(self, writer: asyncio.StreamWriter):
@@ -67,7 +68,7 @@ class CommandRouter:
                 group_node = CommandNode(cls_name)
                 self.root.add_child(group_node)
             parent_node = parent_node.children[cls_name]
-            print(f"[ROUTER] Группа: {cls_name}")
+            log_info(f"[ROUTER] Группа: {cls_name}")
         
         # Поиск методов-команд
         for name, member in inspect.getmembers(instance, predicate=inspect.ismethod):
@@ -75,7 +76,7 @@ class CommandRouter:
                 cmd_name = getattr(member, "_cmd_name")
                 leaf_node = CommandNode(cmd_name, handler=member)
                 current_node.add_child(leaf_node)
-                print(f"... -> Метод: {cmd_name}")
+                log_info(f"... -> Метод: {cmd_name}")
 
         # Поиск подклассов-команд
         for name, member in inspect.getmembers(instance, predicate=inspect.isclass):
@@ -102,7 +103,7 @@ class CommandRouter:
         
         if node.is_group:
             options = list(node.children.keys())
-            print(f"Выберите нужную команду: {options}")
+            log_info(f"Выберите нужную команду: {options}")
 
         # Вычленение аргументов для найденной команды
         raw_args = parts[idx:]
@@ -112,14 +113,13 @@ class CommandRouter:
 
         if len(raw_args) != len(params):
             hint = " ".join([f"<{p.name}:{p.annotation.__name__}>" for p in params])
-            print(f"Ошибка аргументов. Формат: ... {node.name} {hint}")
+            log_error(f"Ошибка аргументов. Формат: ... {node.name} {hint}")
             return
         
         # Конвертация аргументов
         try:
             converted_args = []
             for i, param in enumerate(params):
-                print(i, param)
                 value = raw_args[i]
                 target_type = param.annotation
                 if target_type is not inspect.Parameter.empty:
@@ -129,6 +129,6 @@ class CommandRouter:
 
             await handler(*converted_args)
         except ValueError as e:
-            print(f"Неверный тип данных: {e}")
+            log_error(f"Неверный тип данных: {e}")
         except Exception as e:
-            print(f"Ошибка выполнения: {e}")
+            log_error(f"Ошибка выполнения: {e}")

@@ -12,7 +12,6 @@ class AuthController(BaseController):
 
     @command("login")
     async def login(self, login: str, password: str):
-        print(f"Введен Login на логинизацию: {login}")
 
         request = LoginRequest(login=login, password_hash=self._hash_password(password))
 
@@ -20,7 +19,6 @@ class AuthController(BaseController):
 
     @command("register")
     async def register(self, login: str, username: str, password: str):
-        print(f"Введен Login на регистрацию: {login}")
 
         request = RegisterRequest(login=login, username=username, password_hash=self._hash_password(password))
 

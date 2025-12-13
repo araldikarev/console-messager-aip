@@ -1,16 +1,23 @@
-﻿from dto.models import RegisterRequest
-import asyncio
-from aioconsole import ainput, aprint
+﻿import asyncio
+import base64
+
+import security
+from prompt_toolkit import PromptSession
+from prompt_toolkit.patch_stdout import patch_stdout
+from client.logger import *
+
+
 from client.framework import CommandRouter, Context
 from client.controllers.auth import AuthController
-import base64
-import security
 from cryptography.fernet import Fernet
+
 
 HOST = "127.0.0.1"
 PORT = "12000"
 
 handshake_completed = asyncio.Event()
+
+
 
 async def listen_from_server(reader: asyncio.StreamReader, ctx: Context):
     """
@@ -20,7 +27,7 @@ async def listen_from_server(reader: asyncio.StreamReader, ctx: Context):
         while True:
             data = await reader.readline()
             if not data:
-                print("Некорретные данные, разрыв соединения.")
+                log_error("Некорретные данные, разрыв соединения.")
                 break
 
             data = data.strip()
@@ -31,29 +38,35 @@ async def listen_from_server(reader: asyncio.StreamReader, ctx: Context):
                 try:
                     decrypted = ctx.cipher.decrypt(data)
                     message_str = decrypted.decode('utf-8')
-                    await aprint(f"\n[SERVER]: {message_str}")
+                    log_info(f"\n[SERVER]: {message_str}")
                 except Exception as e:
-                    print(f"Ошибка дешифровки: {e}")
+                    log_error(f"Ошибка дешифровки: {e}")
             
             else:
-                print(f"Raw сообщение: {data}")
+                log_error(f"Raw сообщение: {data}")
     except asyncio.CancelledError:
         pass
     except Exception as e:
-        print(f"Ошибка чтения: {e}")
+        log_error(f"Ошибка чтения: {e}")
 
 async def user_input_loop(writer: asyncio.StreamWriter, ctx: Context):
-    await aprint("Ожидание handshake...")
+    log_info("Ожидание handshake...")
     await handshake_completed.wait()
+    log_ok("Handshake успешно произведен!")
 
     router = CommandRouter(ctx)
     router.register_controller(AuthController)
     
-    await aprint("Консольный мессенджер V1! Введите команду (например /login или /register)")
+    session = PromptSession()
+
+    log_notify("Консольный мессенджер V1! Введите команду (например /login или /register)")
 
     while True:
-        line = await ainput(">>> ")
-        await router.dispatch(line)
+        try: 
+            line = await session.prompt_async(">>> ", style=style)
+            await router.dispatch(line)
+        except (EOFError, KeyboardInterrupt):
+            return
 
 async def perform_handshake(reader: asyncio.StreamReader, writer: asyncio.StreamWriter, ctx: Context):
     """
@@ -78,34 +91,36 @@ async def perform_handshake(reader: asyncio.StreamReader, writer: asyncio.Stream
 
         handshake_completed.set()
     except Exception as e:
-        print(f"Ошибка HANDSHAKE: {e}")
+        log_error(f"Ошибка HANDSHAKE: {e}")
 
 async def main():
-    try:
-        reader, writer = await asyncio.open_connection(HOST, PORT)
-        print(f"Подключено к {HOST}:{PORT}")
-    except ConnectionError as ex:
-        print(f"Не удалось подключиться к серверу")
-        return
-    
-    ctx = Context(writer)
+    with patch_stdout():
+        try:
+            reader, writer = await asyncio.open_connection(HOST, PORT)
+            log_ok(f"Подключено к {HOST}:{PORT}")
+        except ConnectionError as ex:
+            log_error(f"Не удалось подключиться к серверу: {ex}", style=style)
+            return
+        
+        ctx = Context(writer)
 
-    try:
-        await perform_handshake(reader, writer, ctx)
-    except Exception:
-        writer.close()
-        return
+        try:
+            await perform_handshake(reader, writer, ctx)
+        except Exception:
+            writer.close()
+            return
 
-    listener_task = asyncio.create_task(listen_from_server(reader, ctx))
+        listener_task = asyncio.create_task(listen_from_server(reader, ctx))
 
-    try: 
-        await user_input_loop(writer, ctx)
-    finally:
-        listener_task.cancel()
-        writer.close()
-        await writer.wait_closed()
+        
+        try: 
+            await user_input_loop(writer, ctx)
+        finally:
+            listener_task.cancel()
+            writer.close()
+            await writer.wait_closed()
 
-        print("Соединение закрыто")
+            log_info("Соединение закрыто")
 
 if __name__ == "__main__":
     try:
