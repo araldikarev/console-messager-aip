@@ -76,6 +76,21 @@ async def listen_from_server(reader: asyncio.StreamReader, ctx: Context):
                     log_notify(f"\n>>> НОВОЕ СООБЩЕНИЕ ОТ {msg.sender_login} (ID {msg.sender_id}):")
                     log_info(f"    {msg.content}")
                     log_notify(">>>\n")
+                elif action == "message_history_result":
+                    history = json.loads(content)
+                    if not history:
+                        log_info("\n[HISTORY]: История пуста.\n")
+                    else:
+                        log_ok(f"\n{'- НАЧАЛО ИСТОРИИ -':^50}")
+                        for item in history:
+                            prefix = "Вы" if item['is_me'] else item['sender_login']
+                            time_str = item['timestamp'].replace('T', ' ')[:16]
+                            
+                            if item['is_me']:
+                                log_info(f"[{time_str}] {prefix}: {item['content']}")
+                            else:
+                                log_notify(f"[{time_str}] {prefix}: {item['content']}")
+                        log_ok(f"{'- КОНЕЦ ИСТОРИИ -':^50}\n")
                 elif action == "error":
                     log_error(f"\n[SYSTEM]: Ошибка: {content}\n")
                 else:

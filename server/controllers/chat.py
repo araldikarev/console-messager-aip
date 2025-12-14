@@ -1,6 +1,8 @@
-﻿from server.framework import BaseController, action, authorized, CONNECTED_USERS
+﻿import json
+from sqlmodel import select, or_, and_, col
+from server.framework import BaseController, action, authorized, CONNECTED_USERS
 from server.db_models import Message, User
-from dto.models import SendMessageRequest, IncomingMessagePacket
+from dto.models import SendMessageRequest, IncomingMessagePacket, HistoryRequest
 
 
 class ChatController(BaseController):
@@ -38,7 +40,38 @@ class ChatController(BaseController):
 
                 try:
                     await target_ctx.reply("new_message", packet.model_dump_json())
+                    message.is_readed = True
+                    await session.commit()
                 except Exception as ex:
                     print("Произошла ошибка при отправке сообщения: {e}")
 
             await self.ctx.reply_success("Сообщение отправлено!")
+
+    @action("history")
+    @authorized
+    async def get_history(self, req: HistoryRequest):
+        my_id = self.ctx.user_id
+        target_id = req.target_user_id
+        async with self.ctx.create_session() as session:
+            query = select(Message, User.login).join(User, User.id == Message.sender_id).where(
+                or_(
+                    and_(Message.sender_id == my_id, Message.receiver_id == target_id),
+                    and_(Message.sender_id == target_id, Message.receiver_id == my_id)
+                )
+            ).order_by(col(Message.timestamp).desc()).limit(req.limit)
+
+            result = await session.execute(query)
+
+            rows = result.all()
+
+            rows = rows[::-1]
+
+            history_data = []
+            for message, sender_login in rows:
+                history_data.append({
+                    "sender_login": sender_login,
+                    "content": message.content,
+                    "timestamp": message.timestamp.isoformat(),
+                    "is_me": message.sender_id == my_id
+                })
+            await self.ctx.reply("message_history_result", json.dumps(history_data))

@@ -16,6 +16,11 @@ class LoginRequest(BasePacket):
     login: str = Field(..., min_length=3, max_length=20)
     password_hash: str = Field(..., min_length=20)
 
+class HistoryRequest(BasePacket):
+    action: Literal["history"] = "history"
+    target_user_id: int
+    limit: int = 20
+
 class SendMessageRequest(BasePacket):
     action: Literal["message"] = "message"
     receiver_id: int
