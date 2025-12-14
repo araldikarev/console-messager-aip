@@ -78,7 +78,7 @@ def create_jwt(user_id: int, username: str) -> str:
 
 def verify_jwt(token: str) -> dict | None:
     try:
-        payload = jwt.decode(payload=token, key=JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(jwt=token, key=JWT_SECRET, algorithms=[JWT_ALGORITHM])
         return payload
     except jwt.ExpiredSignatureError:
         print("Token expired")

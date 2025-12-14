@@ -11,10 +11,11 @@ class Context:
         self.token: str | None = None
 
     async def send(self, packet: BaseModel):
-        data_str = packet.model_dump_json()
 
         if self.token and hasattr(packet, 'token') and packet.token is None:
             packet.token = self.token
+
+        data_str = packet.model_dump_json()
 
         # Шифрование
         if self.cipher:
@@ -108,10 +109,16 @@ class CommandRouter:
         if node.is_group:
             options = list(node.children.keys())
             log_info(f"Выберите нужную команду: {options}")
+            return
 
         # Вычленение аргументов для найденной команды
-        raw_args = parts[idx:]
         handler = node.handler
+
+        if handler is None:
+            log_error("Неизвестная команда")
+            return
+        
+        raw_args = parts[idx:]
         signature = inspect.signature(handler)
         params = list(signature.parameters.values())
 

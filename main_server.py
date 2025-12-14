@@ -2,6 +2,7 @@
 import json
 from server.framework import ServerRouter, ServerContext
 from server.controllers.auth import AuthController
+from server.controllers.users import UsersController
 from server.database import init_db, async_session
 import security 
 import base64
@@ -12,6 +13,7 @@ SERVER_PUBLIC_KEY = None
 
 router = ServerRouter()
 router.register(AuthController)
+router.register(UsersController) 
 
 async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
     ctx = ServerContext(reader, writer, async_session)

@@ -10,6 +10,8 @@ from client.logger import *
 
 from client.framework import CommandRouter, Context
 from client.controllers.auth import AuthController
+from client.controllers.users import UsersController
+from client.controllers.token import TokenController
 from cryptography.fernet import Fernet
 
 
@@ -49,13 +51,23 @@ async def listen_from_server(reader: asyncio.StreamReader, ctx: Context):
             try:
                 response_dict = json.loads(message_str)
                 action = response_dict.get("action")
-                data = response_dict.get("data")
+                content = response_dict.get("data")
 
                 if action == "auth_success":
-                    ctx.token = data
+                    ctx.token = content
                     log_ok("\n[SYSTEM]: Успешная авторизация: Токен успешно установлен!\n")
+                elif action == "user_list_result":
+                    users = json.loads(content)
+                    if not users:
+                        log_info("\n[USERS]: Пользователи не найдены.\n")
+                    else:
+                        log_ok(f"\n{'ID':<5} | {'LOGIN':<15} | {'USERNAME':<20}")
+                        log_ok("-" * 45)
+                        for u in users:
+                            log_info(f"{u['id']:<5} | {u['login']:<15} | {u['username']:<20}")
+                        log_ok("-" * 45 + "\n")
                 elif action == "error":
-                    log_error(f"\n[SYSTEM]: Ошибка: {data}\n")
+                    log_error(f"\n[SYSTEM]: Ошибка: {content}\n")
                 else:
                     log_info(f"\n[SERVER]: {message_str}\n")
             except json.JSONDecodeError:
@@ -74,6 +86,8 @@ async def user_input_loop(writer: asyncio.StreamWriter, ctx: Context):
 
     router = CommandRouter(ctx)
     router.register_controller(AuthController)
+    router.register_controller(UsersController)
+    router.register_controller(TokenController)
     
     session = PromptSession()
 

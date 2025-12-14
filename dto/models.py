@@ -22,7 +22,7 @@ class SendMessageRequest(BasePacket):
     content: str
 
 class ServerResponse(BasePacket):
-    action: Literal["success", "error", "auth_success"]
+    action: Literal["success", "error", "auth_success", "user_list_result"]
     data: str | None
 
 class UserListRequest(BasePacket):
