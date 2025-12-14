@@ -122,6 +122,14 @@ class CommandRouter:
         signature = inspect.signature(handler)
         params = list(signature.parameters.values())
 
+        # Совмещение str аргументов (подобно params string)
+        if len(raw_args) > len(params):
+            last_param_idx = len(params) - 1
+            if params[last_param_idx].annotation == str:
+                tail = " ".join(raw_args[last_param_idx:])
+                raw_args = raw_args[:last_param_idx]
+                raw_args.append(tail)
+        
         if len(raw_args) != len(params):
             hint = " ".join([f"<{p.name}:{p.annotation.__name__}>" for p in params])
             log_error(f"Ошибка аргументов. Формат: ... {node.name} {hint}")

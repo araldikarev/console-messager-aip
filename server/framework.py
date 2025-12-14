@@ -9,6 +9,8 @@ from functools import wraps
 from dto.models import ServerResponse
 from security import verify_jwt
 
+CONNECTED_USERS: Dict[int, "ServerContext"] = {}
+
 class ServerContext:
     def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, db_session_maker):
         self.reader = reader

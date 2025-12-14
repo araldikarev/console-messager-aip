@@ -1,4 +1,5 @@
-﻿from pydantic import BaseModel, Field
+﻿from datetime import datetime
+from pydantic import BaseModel, Field
 from typing import Literal, Optional
 
 class BasePacket(BaseModel):
@@ -17,12 +18,17 @@ class LoginRequest(BasePacket):
 
 class SendMessageRequest(BasePacket):
     action: Literal["message"] = "message"
-    to_user_id: int
-    from_user_id: int
+    receiver_id: int
     content: str
 
+class IncomingMessagePacket(BaseModel):
+    sender_id: int
+    sender_login: str
+    content: str
+    timestamp: datetime
+
 class ServerResponse(BasePacket):
-    action: Literal["success", "error", "auth_success", "user_list_result"]
+    action: Literal["success", "error", "auth_success", "user_list_result", "new_message", "message_history_result"]
     data: str | None
 
 class UserListRequest(BasePacket):

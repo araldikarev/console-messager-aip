@@ -1,4 +1,4 @@
-﻿from server.framework import BaseController, action
+﻿from server.framework import BaseController, action, CONNECTED_USERS
 from dto.models import LoginRequest, RegisterRequest
 from sqlmodel import select
 from server.db_models import User
@@ -16,8 +16,6 @@ class AuthController(BaseController):
             result = await session.execute(statement=statement)
             user: User = result.scalars().first()
 
-            
-
             if not user:
                 await self.ctx.reply_error("Не найден пользователь!")
                 return
@@ -27,6 +25,9 @@ class AuthController(BaseController):
                 return
             
             token = security.create_jwt(user.id, user.username)
+            self.ctx.user_id = user.id
+            CONNECTED_USERS[user.id] = self.ctx
+            print(f"[ONLINE] Подключен пользователь {user.login} (ID: {user.id})")
             
             await self.ctx.reply("auth_success", token)
 
@@ -48,7 +49,9 @@ class AuthController(BaseController):
                 
                 
                 token = security.create_jwt(new_user.id, new_user.username)
-                
+                self.ctx.user_id = new_user.id
+                CONNECTED_USERS[new_user.id] = self.ctx
+
                 await self.ctx.reply("auth_success", token)
 
             except IntegrityError:

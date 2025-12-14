@@ -2,17 +2,20 @@
 import base64
 import json
 
-import security
+
 from prompt_toolkit import PromptSession
 from prompt_toolkit.patch_stdout import patch_stdout
-from client.logger import *
+from cryptography.fernet import Fernet
 
 
+import security
 from client.framework import CommandRouter, Context
 from client.controllers.auth import AuthController
 from client.controllers.users import UsersController
 from client.controllers.token import TokenController
-from cryptography.fernet import Fernet
+from client.controllers.chat import ChatController
+from client.logger import *
+from dto.models import IncomingMessagePacket
 
 
 HOST = "127.0.0.1"
@@ -66,6 +69,13 @@ async def listen_from_server(reader: asyncio.StreamReader, ctx: Context):
                         for u in users:
                             log_info(f"{u['id']:<5} | {u['login']:<15} | {u['username']:<20}")
                         log_ok("-" * 45 + "\n")
+                elif action == "new_message":
+                    msg_dict = json.loads(content) 
+                    msg = IncomingMessagePacket(**msg_dict)
+                    
+                    log_notify(f"\n>>> НОВОЕ СООБЩЕНИЕ ОТ {msg.sender_login} (ID {msg.sender_id}):")
+                    log_info(f"    {msg.content}")
+                    log_notify(">>>\n")
                 elif action == "error":
                     log_error(f"\n[SYSTEM]: Ошибка: {content}\n")
                 else:
@@ -87,6 +97,7 @@ async def user_input_loop(writer: asyncio.StreamWriter, ctx: Context):
     router = CommandRouter(ctx)
     router.register_controller(AuthController)
     router.register_controller(UsersController)
+    router.register_controller(ChatController)
     router.register_controller(TokenController)
     
     session = PromptSession()

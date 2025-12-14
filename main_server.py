@@ -1,12 +1,16 @@
 ﻿import asyncio
 import json
+import base64
+
+from cryptography.fernet import Fernet
+
+import security 
 from server.framework import ServerRouter, ServerContext
 from server.controllers.auth import AuthController
 from server.controllers.users import UsersController
+from server.controllers.chat import ChatController
 from server.database import init_db, async_session
-import security 
-import base64
-from cryptography.fernet import Fernet
+from server.framework import CONNECTED_USERS
 
 SERVER_PRIVATE_KEY = None
 SERVER_PUBLIC_KEY = None
@@ -14,6 +18,7 @@ SERVER_PUBLIC_KEY = None
 router = ServerRouter()
 router.register(AuthController)
 router.register(UsersController) 
+router.register(ChatController) 
 
 async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
     ctx = ServerContext(reader, writer, async_session)
@@ -61,6 +66,9 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
     except Exception as ex:
         print(f"Произошла непредвиденная ошибка: {ex}")
     finally:
+        if ctx.user_id and ctx.user_id in CONNECTED_USERS:
+            del CONNECTED_USERS[ctx.user_id]
+            print(f"[OFFLINE] Отключение пользователя {ctx.user_id}")
         print(f"Отключение: {address}")
         writer.close()
         await writer.wait_closed()
