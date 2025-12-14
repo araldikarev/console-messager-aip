@@ -1,4 +1,6 @@
-﻿import base64
+﻿import jwt
+import base64
+import datetime
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
@@ -58,4 +60,30 @@ def encrypt_fernet(fernet: Fernet, data: bytes) -> bytes:
 def decrypt_fernet(fernet: Fernet, data: bytes) -> bytes:
     return fernet.decrypt(data)
 
+#endregion
+
+#region JWT
+JWT_SECRET = "RANDOM_SUPER_ULTRA_SECRET_KEY_3000_JUST_AS_TEMPLATE!"
+JWT_ALGORITHM = "HS256"
+
+def create_jwt(user_id: int, username: str) -> str:
+    """Генерирует JWT токен, который живет 24 часа"""
+    payload = {
+        "sub": str(user_id),
+        "name": str(username),
+        "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=24)
+    }
+
+    return jwt.encode(payload=payload, key=JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def verify_jwt(token: str) -> dict | None:
+    try:
+        payload = jwt.decode(payload=token, key=JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        print("Token expired")
+        return None
+    except jwt.InvalidTokenError:
+        print("Invalid token")
+        return None
 #endregion

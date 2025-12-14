@@ -8,9 +8,13 @@ class Context:
     def __init__(self, writer: asyncio.StreamWriter):
         self._writer = writer
         self.cipher = None
+        self.token: str | None = None
 
     async def send(self, packet: BaseModel):
         data_str = packet.model_dump_json()
+
+        if self.token and hasattr(packet, 'token') and packet.token is None:
+            packet.token = self.token
 
         # Шифрование
         if self.cipher:

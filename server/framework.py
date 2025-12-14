@@ -1,9 +1,13 @@
 ﻿import asyncio
 import inspect
+
 from typing import Callable, Dict, Type
 from pydantic import BaseModel, ValidationError
-from dto.models import ServerResponse
 from sqlalchemy.ext.asyncio import AsyncSession 
+from functools import wraps
+
+from dto.models import ServerResponse
+from security import verify_jwt
 
 class ServerContext:
     def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, db_session_maker):
@@ -12,6 +16,7 @@ class ServerContext:
         self.db_session_maker = db_session_maker
         self.peer_name = writer.get_extra_info("peername")
         self.cipher = None
+        self.user_id: int | None = None
     
     async def reply(self, status: str, data: str | None = None):
         """Ответ клиенту"""
@@ -35,11 +40,30 @@ class ServerContext:
     def create_session(self) -> AsyncSession:
         return self.db_session_maker()
 
+# декоратор для эндпоинта
 def action(name: str):
     def decorator(func):
         func._action_name = name
         return func
     return decorator
+
+# декоратор для верификации токена
+def authorized(func):
+    @wraps(func)
+    async def wrapper(self: BaseController, req: BaseModel):
+        if not req.token:
+            await self.ctx.reply_error("Unauthorized: Нет токена в запросе.")
+            return
+        
+        payload = verify_jwt(req.token)
+        if not payload:
+            await self.ctx.reply_error("Unauthorized: Невалидный токен")
+            return
+        
+        self.ctx.user_id = int(payload["sub"])
+        await func(self, req)
+    wrapper._action_name = getattr(func, "_action_name", None)
+    return wrapper
 
 class BaseController:
     def __init__(self, ctx: ServerContext):
@@ -89,10 +113,8 @@ class ServerRouter:
                     print(f"Ошибка валидации JSON: {e}")
                     await ctx.reply_error(f"Ошибка валидации JSON: {e}")
                     return
-            
             else:
                 request = raw_json
-        
         try:
             if request:
                 await method(controller_instance, request)

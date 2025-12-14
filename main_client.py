@@ -1,5 +1,6 @@
 ﻿import asyncio
 import base64
+import json
 
 import security
 from prompt_toolkit import PromptSession
@@ -38,12 +39,29 @@ async def listen_from_server(reader: asyncio.StreamReader, ctx: Context):
                 try:
                     decrypted = ctx.cipher.decrypt(data)
                     message_str = decrypted.decode('utf-8')
-                    log_info(f"\n[SERVER]: {message_str}")
                 except Exception as e:
                     log_error(f"Ошибка дешифровки: {e}")
             
             else:
                 log_error(f"Raw сообщение: {data}")
+                continue
+            
+            try:
+                response_dict = json.loads(message_str)
+                action = response_dict.get("action")
+                data = response_dict.get("data")
+
+                if action == "auth_success":
+                    ctx.token = data
+                    log_ok("\n[SYSTEM]: Успешная авторизация: Токен успешно установлен!\n")
+                elif action == "error":
+                    log_error(f"\n[SYSTEM]: Ошибка: {data}\n")
+                else:
+                    log_info(f"\n[SERVER]: {message_str}\n")
+            except json.JSONDecodeError:
+                log_error("\n[SYSTEM]: Внутренняя ошибка парсинга JSON\n")
+            except Exception as ex:
+                log_error(f"\n[SYSTEM]: Произошла непредвиденная ошибка: {ex}")
     except asyncio.CancelledError:
         pass
     except Exception as e:

@@ -3,7 +3,7 @@ from dto.models import LoginRequest, RegisterRequest
 from sqlmodel import select
 from server.db_models import User
 from sqlalchemy.exc import IntegrityError
-import hashlib
+import security
 
 class AuthController(BaseController):
 
@@ -26,7 +26,9 @@ class AuthController(BaseController):
                 await self.ctx.reply_error("Неверный пароль!")
                 return
             
-            await self.ctx.reply_success("Успешный вход (ТОКЕН, возможно JWT, передача по RSA/AES)")
+            token = security.create_jwt(user.id, user.username)
+            
+            await self.ctx.reply("auth_success", token)
 
 
     @action("register")
@@ -43,6 +45,13 @@ class AuthController(BaseController):
             try:
                 session.add(new_user)
                 await session.commit()
-                await self.ctx.reply_success("Успешная регистрация (ТОКЕН, возможно JWT, передача по RSA/AES)")
+                
+                
+                token = security.create_jwt(new_user.id, new_user.username)
+                
+                await self.ctx.reply("auth_success", token)
+
             except IntegrityError:
                 await self.ctx.reply_error("Логин уже занят.")
+
+            

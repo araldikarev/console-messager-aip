@@ -1,8 +1,8 @@
 ﻿from pydantic import BaseModel, Field
-from typing import Literal
+from typing import Literal, Optional
 
 class BasePacket(BaseModel):
-    pass
+    token: Optional[str] = None
 
 class RegisterRequest(BasePacket):
     action: Literal["register"] = "register"
@@ -22,5 +22,11 @@ class SendMessageRequest(BasePacket):
     content: str
 
 class ServerResponse(BasePacket):
-    action: Literal["success", "error"]
+    action: Literal["success", "error", "auth_success"]
     data: str | None
+
+class UserListRequest(BasePacket):
+    action: Literal["user_list"] = "user_list"
+    page: int = 1
+    page_size: int = 5
+    search_query: Optional[str] = None
