@@ -1,6 +1,6 @@
 from client.controllers.base import BaseController
 from client.framework import command
-from client.logger import *
+from client.logger import log_ok, log_error
 
 class TokenController(BaseController):
 

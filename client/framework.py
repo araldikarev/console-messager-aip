@@ -2,7 +2,7 @@ import inspect
 import asyncio
 from typing import Callable, Any, Dict, List
 from pydantic import BaseModel
-from client.logger import *
+from client.logger import log_info, log_error
 
 class Context:
     """Контекст: передаётся в контроллеры."""

@@ -14,7 +14,7 @@ from client.controllers.auth import AuthController
 from client.controllers.users import UsersController
 from client.controllers.token import TokenController
 from client.controllers.chat import ChatController
-from client.logger import *
+from client.logger import log_ok, log_info, log_notify, log_error
 from dto.models import IncomingMessagePacket
 
 handshake_completed = asyncio.Event()
