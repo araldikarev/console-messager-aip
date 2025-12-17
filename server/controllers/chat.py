@@ -10,6 +10,13 @@ class ChatController(BaseController):
     @action(name="message")
     @authorized
     async def send_message(self, req: SendMessageRequest):
+        """
+        Эндпоинт отправки сообщения пользователю. Требует авторизации.
+        
+        :param self: self
+        :param req: Пакет SendMessageRequest
+        :type req: SendMessageRequest
+        """
         sender_id = self.ctx.user_id
         
         async with self.ctx.create_session() as session:
@@ -50,6 +57,13 @@ class ChatController(BaseController):
     @action("history")
     @authorized
     async def get_history(self, req: HistoryRequest):
+        """
+        Эндпоинт получения истории сообщений с пользователем. Требует авторизации.
+        
+        :param self: self
+        :param req: Пакет HistoryRequest
+        :type req: HistoryRequest
+        """
         my_id = self.ctx.user_id
         target_id = req.target_user_id
         async with self.ctx.create_session() as session:

@@ -1,8 +1,9 @@
 ﻿pydantic
-asyncio
 sqlmodel
 aiosqlite
 cryptography 
 python-dotenv
 prompt_toolkit
 pyjwt
+pytest
+pytest-asyncio

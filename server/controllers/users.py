@@ -9,6 +9,13 @@ class UsersController(BaseController):
     @action("user_list")
     @authorized
     async def get_users(self, req: UserListRequest):
+        """
+        Эндпоинт получения списка пользователей. Требует авторизации.
+        
+        :param self: self
+        :param req: Пакет UserListRequest
+        :type req: UserListRequest
+        """
         async with self.ctx.create_session() as session:
             query = select(User)
 

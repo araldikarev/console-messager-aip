@@ -1,7 +1,7 @@
 ﻿import asyncio
 import base64
 import json
-
+import argparse
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.patch_stdout import patch_stdout
@@ -17,17 +17,16 @@ from client.controllers.chat import ChatController
 from client.logger import *
 from dto.models import IncomingMessagePacket
 
-
-HOST = "127.0.0.1"
-PORT = "12000"
-
 handshake_completed = asyncio.Event()
-
-
 
 async def listen_from_server(reader: asyncio.StreamReader, ctx: Context):
     """
-    Фоновая задача: выводит сообщения на экран
+    Фоновая задача: выводит сообщения на экран и хендлит ответы сервера.
+    
+    :param reader: Поток чтения.
+    :type reader: asyncio.StreamReader
+    :param ctx: Контекст.
+    :type ctx: Context
     """
     try:
         while True:
@@ -104,7 +103,14 @@ async def listen_from_server(reader: asyncio.StreamReader, ctx: Context):
     except Exception as e:
         log_error(f"Ошибка чтения: {e}")
 
-async def user_input_loop(writer: asyncio.StreamWriter, ctx: Context):
+async def user_input_loop(ctx: Context):
+    """
+    Слушает ввод пользователя.
+    
+    :param ctx: Контест.
+    :type ctx: Context
+    """
+
     log_info("Ожидание handshake...")
     await handshake_completed.wait()
     log_ok("Handshake успешно произведен!")
@@ -117,7 +123,7 @@ async def user_input_loop(writer: asyncio.StreamWriter, ctx: Context):
     
     session = PromptSession()
 
-    log_notify("Консольный мессенджер V1! Введите команду (например /login или /register)")
+    log_notify("Консольный мессенджер! Введите команду (например /login или /register)")
 
     while True:
         try: 
@@ -128,7 +134,14 @@ async def user_input_loop(writer: asyncio.StreamWriter, ctx: Context):
 
 async def perform_handshake(reader: asyncio.StreamReader, writer: asyncio.StreamWriter, ctx: Context):
     """
-    Обмен ключами
+    Проведение хендшейка с сервером: обмен Fernet ключами.
+    
+    :param reader: Поток чтения.
+    :type reader: asyncio.StreamReader
+    :param writer: Поток записи.
+    :type writer: asyncio.StreamWriter
+    :param ctx: Контекст.
+    :type ctx: Context
     """
     try:
         pem_base64 = await reader.readline()
@@ -151,11 +164,25 @@ async def perform_handshake(reader: asyncio.StreamReader, writer: asyncio.Stream
     except Exception as e:
         log_error(f"Ошибка HANDSHAKE: {e}")
 
+def parse_args():
+    """
+    Парсинг аргументов.
+    """
+    parser = argparse.ArgumentParser(description="Клиент консольного мессенджера")
+    parser.add_argument("--host", type=str, default="127.0.0.1", help="IP Сервера")
+    parser.add_argument("--port", type=int, default=12000, help="Порт")
+    return parser.parse_args()
+
 async def main():
+    """
+    Стартовая точка логики клиента.
+    """
+    args = parse_args()
+
     with patch_stdout():
         try:
-            reader, writer = await asyncio.open_connection(HOST, PORT)
-            log_ok(f"Подключено к {HOST}:{PORT}")
+            reader, writer = await asyncio.open_connection(args.host, args.port)
+            log_ok(f"Подключено к {args.host}:{args.port}")
         except ConnectionError as ex:
             log_error(f"Не удалось подключиться к серверу: {ex}")
             return
@@ -172,7 +199,7 @@ async def main():
 
         
         try: 
-            await user_input_loop(writer, ctx)
+            await user_input_loop(ctx)
         finally:
             listener_task.cancel()
             writer.close()

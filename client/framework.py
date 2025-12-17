@@ -5,22 +5,27 @@ from pydantic import BaseModel
 from client.logger import *
 
 class Context:
+    """Контекст: передаётся в контроллеры."""
     def __init__(self, writer: asyncio.StreamWriter):
         self._writer = writer
         self.cipher = None
         self.token: str | None = None
 
     async def send(self, packet: BaseModel):
-
+        """
+        Отправляет данные на сервер.
+        
+        :param self: self
+        :param packet: Отправляемый пакет данных.
+        :type packet: BaseModel
+        """
         if self.token and hasattr(packet, 'token') and packet.token is None:
             packet.token = self.token
 
         data_str = packet.model_dump_json()
 
-        # Шифрование
         if self.cipher:
             raw_bytes = data_str.encode('utf-8')
-
             encrypted_payload = self.cipher.encrypt(raw_bytes)
             self._writer.write(encrypted_payload + b"\n")
         else:
@@ -30,8 +35,13 @@ class Context:
         await self._writer.drain()
 
 
-# декоратор
 def command(name: str):
+    """
+    Декоратор команды для регистрации.
+    
+    :param name: Название команды.
+    :type name: str
+    """
     def decorator(target):
         target._cmd_name = name
         target._is_command_node = True
@@ -39,30 +49,58 @@ def command(name: str):
     return decorator
 
 class CommandNode:
+    """Класс ноды команды. Необходим для роутинга (Пример: /command subcommand **arguments)"""
     def __init__(self, name: str, handler: Callable = None):
+        """
+        Инициализирует командную ноду.
+        
+        :param self: self
+        :param name: Название ноды.
+        :type name: str
+        :param handler: Хендлер (исполняемая функция, опционально).
+        :type handler: Callable
+        """
         self.name = name
         self.children: Dict[str, "CommandNode"] = {}
         self.handler = handler
         self.is_group = handler is None
 
     def add_child(self, node: "CommandNode"):
+        """
+        Добавляет в ноду ветки (другую ноду)
+        
+        :param self: self
+        :param node: Командная нода.
+        :type node: "CommandNode"
+        """
         self.children[node.name] = node
 
 
 
 class CommandRouter:
+    """Роутер зарегистрированных консольных команд."""
     def __init__(self, ctx: Context):
         self.ctx = ctx
         self.root = CommandNode("root")
     
     def register_controller(self, controller_cls):
         """
-        Точка входа регистрации контроллера. Строит из класса ветку.
+        Регистрация контроллера с командами.
+        
+        :param self: self
+        :param controller_cls: Класс контроллера.
         """
         self._scan_recursive(controller_cls, self.root)
 
     def _scan_recursive(self, cls_def, parent_node: CommandNode):
-
+        """
+        Рекурсивное сканирование класса в поисках команд (хендлеров).
+        
+        :param self: self.
+        :param cls_def: Класс контроллера.
+        :param parent_node: Родительская нода.
+        :type parent_node: CommandNode
+        """
         instance = cls_def(self.ctx)
 
         current_node = parent_node
@@ -89,6 +127,13 @@ class CommandRouter:
                 self._scan_recursive(member, current_node)
         
     async def dispatch(self, line: str):
+        """
+        Парсит строку и роутит по нужным командам.
+        
+        :param self: self
+        :param line: Текстовая строка для парсинга.
+        :type line: str
+        """
         parts = line.strip().split()
         if not parts: return
 

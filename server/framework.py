@@ -12,6 +12,9 @@ from security import verify_jwt
 CONNECTED_USERS: Dict[int, "ServerContext"] = {}
 
 class ServerContext:
+    """
+    Класс контекста, подставляющийся в контроллеры.
+    """
     def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, db_session_maker):
         self.reader = reader
         self.writer = writer
@@ -21,7 +24,15 @@ class ServerContext:
         self.user_id: int | None = None
     
     async def reply(self, status: str, data: str | None = None):
-        """Ответ клиенту"""
+        """
+        Функция для ответа клиенту.
+        
+        :param self: self
+        :param status: Статус ответа (success, error и тд)
+        :type status: str
+        :param data: Данные для отправки
+        :type data: str | None
+        """
         response = ServerResponse(action=status, data=data)
         json_str = response.model_dump_json()
 
@@ -42,15 +53,25 @@ class ServerContext:
     def create_session(self) -> AsyncSession:
         return self.db_session_maker()
 
-# декоратор для эндпоинта
+
 def action(name: str):
+    """
+    Декоратор для эндпоинтов
+    
+    :param name: Название эндпоинта для роутинга
+    :type name: str
+    """
     def decorator(func):
         func._action_name = name
         return func
     return decorator
 
-# декоратор для верификации токена
 def authorized(func):
+    """
+    Декоратор проверки авторизации.
+    
+    :param func: Функция
+    """
     @wraps(func)
     async def wrapper(self: BaseController, req: BaseModel):
         if not req.token:
@@ -68,15 +89,25 @@ def authorized(func):
     return wrapper
 
 class BaseController:
+    """Класс-провайдер контекста."""
     def __init__(self, ctx: ServerContext):
         self.ctx = ctx
 
 class ServerRouter:
+    """
+    Класс роутинга на эндпоинты
+    """
     def __init__(self):
         self.routes: Dict[str, tuple[Type[BaseController], Callable]] = {}
 
     def register(self, controller_cls: Type[BaseController]):
-
+        """
+        Регистрирует контроллер с эндпоинтами.
+        
+        :param self: self
+        :param controller_cls: Класс контроллера для регистрации.
+        :type controller_cls: Type[BaseController]
+        """
         for name, method in inspect.getmembers(controller_cls, predicate=inspect.isfunction):
             action_name = getattr(method, "_action_name", None)
             if action_name:
@@ -85,7 +116,15 @@ class ServerRouter:
 
     
     async def dispatch(self, ctx: ServerContext, raw_json: dict):
-        """Поиск эндпоинта и парсинг аргументов"""
+        """
+        Роутинг полученных данных на нужный эндпоинт.
+        
+        :param self: self
+        :param ctx: Контекст
+        :type ctx: ServerContext
+        :param raw_json: Raw JSON строка
+        :type raw_json: dict
+        """
         action_name = raw_json.get("action")
 
         if not action_name:

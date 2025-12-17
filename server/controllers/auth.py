@@ -9,7 +9,13 @@ class AuthController(BaseController):
 
     @action("login")
     async def login(self, req: LoginRequest):
-        print(f"[LOGIN] {req.login}")
+        """
+        Эндпоинт авторизации.
+        
+        :param self: self
+        :param req: Пакет LoginRequest
+        :type req: LoginRequest
+        """
 
         async with self.ctx.create_session() as session:
             statement = select(User).where(User.login == req.login)
@@ -34,7 +40,13 @@ class AuthController(BaseController):
 
     @action("register")
     async def register(self, req: RegisterRequest):
-        print(f"[REGISTER] {req.login}")
+        """
+        Эндпоинт регистрации
+        
+        :param self: self
+        :param req: Пакет RegisterRequest
+        :type req: RegisterRequest
+        """
 
         async with self.ctx.create_session() as session:
             new_user = User(
