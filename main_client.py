@@ -157,7 +157,7 @@ async def main():
             reader, writer = await asyncio.open_connection(HOST, PORT)
             log_ok(f"Подключено к {HOST}:{PORT}")
         except ConnectionError as ex:
-            log_error(f"Не удалось подключиться к серверу: {ex}", style=style)
+            log_error(f"Не удалось подключиться к серверу: {ex}")
             return
         
         ctx = Context(writer)
