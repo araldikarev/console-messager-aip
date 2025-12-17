@@ -1,4 +1,4 @@
-﻿import jwt
+import jwt
 import base64
 import datetime
 from cryptography.fernet import Fernet

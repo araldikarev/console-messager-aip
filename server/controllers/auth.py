@@ -1,4 +1,4 @@
-﻿from server.framework import BaseController, action, CONNECTED_USERS
+from server.framework import BaseController, action, CONNECTED_USERS
 from dto.models import LoginRequest, RegisterRequest
 from sqlmodel import select
 from server.db_models import User

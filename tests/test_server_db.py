@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 import security
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker

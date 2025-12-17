@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 import security
 from cryptography.fernet import Fernet
 

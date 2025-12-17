@@ -1,4 +1,4 @@
-﻿from client.controllers.base import BaseController
+from client.controllers.base import BaseController
 from client.framework import command
 from dto.models import SendMessageRequest, HistoryRequest
 from client.logger import *

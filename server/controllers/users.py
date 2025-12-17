@@ -1,4 +1,4 @@
-﻿import json
+import json
 from server.framework import BaseController, action, authorized
 from dto.models import UserListRequest
 from server.db_models import User

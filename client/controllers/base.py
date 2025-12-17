@@ -1,4 +1,4 @@
-﻿from client.framework import Context
+from client.framework import Context
 
 class BaseController:
     """Класс-провайдер контекста."""

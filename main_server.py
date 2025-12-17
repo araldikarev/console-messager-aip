@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import json
 import base64
 import argparse

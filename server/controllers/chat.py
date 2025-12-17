@@ -1,4 +1,4 @@
-﻿import json
+import json
 from sqlmodel import select, or_, and_, col
 from server.framework import BaseController, action, authorized, CONNECTED_USERS
 from server.db_models import Message, User

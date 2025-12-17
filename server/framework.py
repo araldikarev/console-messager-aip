@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import inspect
 
 from typing import Callable, Dict, Type
