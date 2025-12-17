@@ -3,18 +3,14 @@ from unittest.mock import patch
 from client.framework import CommandRouter, Context, command
 
 class MockWriter:
-    """
-    Mock для asyncio.StreamWriter
-    """
+    """Mock для asyncio.StreamWriter"""
     def write(self, data):
         pass
     async def drain(self):
         pass
 
 class MockController:
-    """
-    Mock для контроллера консольных команд
-    """
+    """Mock для контроллера консольных команд"""
     def __init__(self, ctx):
         self.ctx = ctx
         self.called = False
@@ -45,17 +41,13 @@ class MockController:
 
 @pytest.fixture(autouse=True)
 def mock_logger():
-    """
-    Отключение print логгера.
-    """
+    """Отключение print логгера."""
     with patch('client.logger.print_formatted_text'):
         yield
 
 
 async def test_router_registration():
-    """
-    Тест: контроллер регистрируется и строит ноды команд
-    """
+    """Тест: контроллер регистрируется и строит ноды команд"""
     mock_writer = MockWriter()
     ctx = Context(mock_writer)
     router = CommandRouter(ctx)
@@ -66,9 +58,7 @@ async def test_router_registration():
     assert "math" in router.root.children
 
 async def test_dispatch_simple_command():
-    """
-    Тест: вызов команды /test hello
-    """
+    """Тест: вызов команды /test hello"""
     mock_writer = MockWriter()
     ctx = Context(mock_writer)
     router = CommandRouter(ctx)

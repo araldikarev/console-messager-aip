@@ -10,6 +10,7 @@ from server.db_models import User, Message
 from dto.models import RegisterRequest, SendMessageRequest
 
 class MockServerContext:
+    """Mock серверного контекста."""
     def __init__(self, session_maker):
         self.db_session_maker = session_maker
         self.replies = []
@@ -30,6 +31,7 @@ class MockServerContext:
 
 @pytest.fixture
 async def db_session_maker():
+    """Создаёт БД сессию."""
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     
     async with engine.begin() as connection:
@@ -39,6 +41,7 @@ async def db_session_maker():
     return maker
 
 async def test_sing_up_saves_to_db(db_session_maker):
+    """Тест: регистрации пользователя."""
     ctx = MockServerContext(db_session_maker)
     controller = AuthController(ctx)
     
@@ -59,9 +62,7 @@ async def test_sing_up_saves_to_db(db_session_maker):
         assert user.username == "Test User"
 
 async def test_chat_saves_history(db_session_maker):
-    """
-    Тест: создаётся 2 пользователя в БД, инициализируется ChatController, производится отправка сообщения от пользователя User 1 до пользователя User 2.
-    """
+    """Тест: создаётся 2 пользователя в БД, инициализируется ChatController, производится отправка сообщения от пользователя User 1 до пользователя User 2."""
     async with db_session_maker() as session:
         user1 = User(login="user1", username="User 1", password_hash="123")
         user2 = User(login="user2", username="User 2", password_hash="123")
