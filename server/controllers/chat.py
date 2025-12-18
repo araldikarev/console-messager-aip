@@ -12,23 +12,24 @@ class ChatController(BaseController):
     async def send_message(self, req: SendMessageRequest):
         """
         Эндпоинт отправки сообщения пользователю. Требует авторизации.
-        
+
         :param self: self
         :param req: Пакет SendMessageRequest
         :type req: SendMessageRequest
         """
         sender_id = self.ctx.user_id
-        
+
         async with self.ctx.create_session() as session:
             receiver = await session.get(User, req.receiver_id)
             if not receiver:
                 await self.ctx.reply_error(f"Пользователь {req.receiver_id} не найден!")
-            
+                return
+
             message = Message(
                 sender_id=sender_id,
                 receiver_id=req.receiver_id,
                 content=req.content,
-                is_readed=False
+                is_readed=False,
             )
             session.add(message)
             await session.commit()
@@ -42,7 +43,7 @@ class ChatController(BaseController):
                     sender_id=sender_id,
                     sender_login=sender.login,
                     content=req.content,
-                    timestamp=message.timestamp
+                    timestamp=message.timestamp,
                 )
 
                 try:
@@ -59,7 +60,7 @@ class ChatController(BaseController):
     async def get_history(self, req: HistoryRequest):
         """
         Эндпоинт получения истории сообщений с пользователем. Требует авторизации.
-        
+
         :param self: self
         :param req: Пакет HistoryRequest
         :type req: HistoryRequest
@@ -67,12 +68,22 @@ class ChatController(BaseController):
         my_id = self.ctx.user_id
         target_id = req.target_user_id
         async with self.ctx.create_session() as session:
-            query = select(Message, User.login).join(User, User.id == Message.sender_id).where(
-                or_(
-                    and_(Message.sender_id == my_id, Message.receiver_id == target_id),
-                    and_(Message.sender_id == target_id, Message.receiver_id == my_id)
+            query = (
+                select(Message, User.login)
+                .join(User, User.id == Message.sender_id)
+                .where(
+                    or_(
+                        and_(
+                            Message.sender_id == my_id, Message.receiver_id == target_id
+                        ),
+                        and_(
+                            Message.sender_id == target_id, Message.receiver_id == my_id
+                        ),
+                    )
                 )
-            ).order_by(col(Message.timestamp).desc()).limit(req.limit)
+                .order_by(col(Message.timestamp).desc())
+                .limit(req.limit)
+            )
 
             result = await session.execute(query)
 
@@ -82,10 +93,12 @@ class ChatController(BaseController):
 
             history_data = []
             for message, sender_login in rows:
-                history_data.append({
-                    "sender_login": sender_login,
-                    "content": message.content,
-                    "timestamp": message.timestamp.isoformat(),
-                    "is_me": message.sender_id == my_id
-                })
+                history_data.append(
+                    {
+                        "sender_login": sender_login,
+                        "content": message.content,
+                        "timestamp": message.timestamp.isoformat(),
+                        "is_me": message.sender_id == my_id,
+                    }
+                )
             await self.ctx.reply("message_history_result", json.dumps(history_data))

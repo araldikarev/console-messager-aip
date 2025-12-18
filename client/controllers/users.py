@@ -3,6 +3,7 @@ from client.framework import command
 from dto.models import UserListRequest
 from client.logger import log_info
 
+
 class UsersController(BaseController):
 
     @command("users")
@@ -10,7 +11,7 @@ class UsersController(BaseController):
         """
         Вывод списка пользователей
         /users [Номер страницы]
-        
+
         :param page: Страница
         :type page: int
         """
@@ -23,12 +24,10 @@ class UsersController(BaseController):
         """
         Поиск пользователей
         /find [Username или Login]
-        
-        :param page: Username | Login
-        :type page: str
+
+        :param query: Username | Login
+        :type query: str
         """
         log_info(f"Поиск пользователей по запросу '{query}'...")
         request = UserListRequest(search_query=query, page=1)
         await self.ctx.send(request)
-
-

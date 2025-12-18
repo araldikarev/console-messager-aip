@@ -5,13 +5,14 @@ from server.db_models import User
 from sqlalchemy.exc import IntegrityError
 import security
 
+
 class AuthController(BaseController):
 
     @action("login")
     async def login(self, req: LoginRequest):
         """
         Эндпоинт авторизации.
-        
+
         :param self: self
         :param req: Пакет LoginRequest
         :type req: LoginRequest
@@ -25,24 +26,23 @@ class AuthController(BaseController):
             if not user:
                 await self.ctx.reply_error("Не найден пользователь!")
                 return
-            
+
             if user.password_hash != req.password_hash:
                 await self.ctx.reply_error("Неверный пароль!")
                 return
-            
+
             token = security.create_jwt(user.id, user.username)
             self.ctx.user_id = user.id
             CONNECTED_USERS[user.id] = self.ctx
             print(f"[ONLINE] Подключен пользователь {user.login} (ID: {user.id})")
-            
-            await self.ctx.reply("auth_success", token)
 
+            await self.ctx.reply("auth_success", token)
 
     @action("register")
     async def register(self, req: RegisterRequest):
         """
         Эндпоинт регистрации
-        
+
         :param self: self
         :param req: Пакет RegisterRequest
         :type req: RegisterRequest
@@ -50,16 +50,13 @@ class AuthController(BaseController):
 
         async with self.ctx.create_session() as session:
             new_user = User(
-                login=req.login,
-                username=req.username,
-                password_hash=req.password_hash
+                login=req.login, username=req.username, password_hash=req.password_hash
             )
 
             try:
                 session.add(new_user)
                 await session.commit()
-                
-                
+
                 token = security.create_jwt(new_user.id, new_user.username)
                 self.ctx.user_id = new_user.id
                 CONNECTED_USERS[new_user.id] = self.ctx
@@ -68,5 +65,3 @@ class AuthController(BaseController):
 
             except IntegrityError:
                 await self.ctx.reply_error("Логин уже занят.")
-
-            

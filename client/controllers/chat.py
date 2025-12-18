@@ -3,6 +3,7 @@ from client.framework import command
 from dto.models import SendMessageRequest, HistoryRequest
 from client.logger import log_info
 
+
 class ChatController(BaseController):
 
     @command("msg")
@@ -10,7 +11,7 @@ class ChatController(BaseController):
         """
         Отправка сообщения.
         /msg <ID пользователя> <Текст сообщения>
-        
+
         :param self: self
         :param user_id: ID получателя.
         :type user_id: int
@@ -18,10 +19,7 @@ class ChatController(BaseController):
         :type content: str
         """
         log_info(f"Отправка сообщения пользователю ID {user_id}...")
-        request = SendMessageRequest(
-            receiver_id=user_id,
-            content=content
-        )
+        request = SendMessageRequest(receiver_id=user_id, content=content)
         await self.ctx.send(request)
 
     @command("history")
@@ -29,7 +27,7 @@ class ChatController(BaseController):
         """
         История переписки.
         /history <ID пользователя>
-        
+
         :param self: self
         :param user_id: ID собеседника.
         :type user_id: int

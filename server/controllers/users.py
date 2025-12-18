@@ -4,6 +4,7 @@ from dto.models import UserListRequest
 from server.db_models import User
 from sqlmodel import select, or_, col, func
 
+
 class UsersController(BaseController):
 
     @action("user_list")
@@ -11,7 +12,7 @@ class UsersController(BaseController):
     async def get_users(self, req: UserListRequest):
         """
         Эндпоинт получения списка пользователей. Требует авторизации.
-        
+
         :param self: self
         :param req: Пакет UserListRequest
         :type req: UserListRequest
@@ -22,10 +23,10 @@ class UsersController(BaseController):
             if req.search_query:
                 search_filter = or_(
                     col(User.login).contains(req.search_query),
-                    col(User.username).contains(req.search_query)
+                    col(User.username).contains(req.search_query),
                 )
                 query = query.where(search_filter)
-            
+
             offset = (req.page - 1) * req.page_size
 
             query = query.offset(offset).limit(req.page_size)

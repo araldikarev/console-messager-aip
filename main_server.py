@@ -5,7 +5,7 @@ import argparse
 
 from cryptography.fernet import Fernet
 
-import security 
+import security
 from server.framework import ServerRouter, ServerContext
 from server.controllers.auth import AuthController
 from server.controllers.users import UsersController
@@ -18,13 +18,16 @@ SERVER_PUBLIC_KEY = None
 
 router = ServerRouter()
 router.register(AuthController)
-router.register(UsersController) 
-router.register(ChatController) 
+router.register(UsersController)
+router.register(ChatController)
 
-async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter, db_session_maker):
+
+async def handle_client(
+    reader: asyncio.StreamReader, writer: asyncio.StreamWriter, db_session_maker
+):
     """
     Функция для обработки сообщений клиентов.
-    
+
     :param reader: Поток чтения.
     :type reader: asyncio.StreamReader
     :param writer: Поток записи.
@@ -47,8 +50,10 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
         if not encrypted_fernet_key_base64:
             print("Клиент не поддержал Handshake")
             return
-        
-        fernet_key = security.decrypt_rsa(SERVER_PRIVATE_KEY, encrypted_fernet_key_base64.strip())
+
+        fernet_key = security.decrypt_rsa(
+            SERVER_PRIVATE_KEY, encrypted_fernet_key_base64.strip()
+        )
         ctx.cipher = Fernet(fernet_key)
 
         print(f"[{address}] Успешный HANDSHAKE! Канал зашифрован.")
@@ -57,14 +62,14 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             encrypted_line = await reader.readline()
             if not encrypted_line:
                 break
-                
+
             encrypted_line = encrypted_line.strip()
             if not encrypted_line:
                 continue
 
             try:
                 json_bytes = ctx.cipher.decrypt(encrypted_line)
-                message_str = json_bytes.decode('utf-8')
+                message_str = json_bytes.decode("utf-8")
                 print(f"Получено (дешифрованно): {message_str}")
 
                 base_data = json.loads(message_str)
@@ -83,6 +88,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
         writer.close()
         await writer.wait_closed()
 
+
 def parse_args():
     """
     Парсинг аргументов.
@@ -90,11 +96,19 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Сервер консольного мессенджера")
     parser.add_argument("--host", type=str, default="127.0.0.1", help="IP Хоста")
     parser.add_argument("--port", type=int, default=12000, help="Порт")
-    parser.add_argument("--db-path", type=str, default="server/database.db", help="Путь к SQLite базе данных")
-    parser.add_argument("--jwt-secret", default="UNSAFE_JWT_SECRET_KEY", help="JWT Секретный ключ")
+    parser.add_argument(
+        "--db-path",
+        type=str,
+        default="server/database.db",
+        help="Путь к SQLite базе данных",
+    )
+    parser.add_argument(
+        "--jwt-secret", default="UNSAFE_JWT_SECRET_KEY", help="JWT Секретный ключ"
+    )
     parser.add_argument("--jwt-algo", default="HS256", help="Алгоритм JWT")
     parser.add_argument("--jwt-exp", type=int, default=24, help="Часы истечения JWT")
     return parser.parse_args()
+
 
 async def main():
     """
@@ -117,7 +131,9 @@ async def main():
 
     server = await asyncio.start_server(server_handler, args.host, args.port)
     async with server:
-        print(f"Поднятие сервера на {args.host}:{args.port} (Путь к бд: {args.db_path})")
+        print(
+            f"Поднятие сервера на {args.host}:{args.port} (Путь к бд: {args.db_path})"
+        )
         await server.serve_forever()
 
 
@@ -126,4 +142,3 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         pass
-            

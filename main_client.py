@@ -14,15 +14,16 @@ from client.controllers.auth import AuthController
 from client.controllers.users import UsersController
 from client.controllers.token import TokenController
 from client.controllers.chat import ChatController
-from client.logger import log_ok, log_info, log_notify, log_error
+from client.logger import log_ok, log_info, log_notify, log_error, style
 from dto.models import IncomingMessagePacket
 
 handshake_completed = asyncio.Event()
 
+
 async def listen_from_server(reader: asyncio.StreamReader, ctx: Context):
     """
     Фоновая задача: выводит сообщения на экран и хендлит ответы сервера.
-    
+
     :param reader: Поток чтения.
     :type reader: asyncio.StreamReader
     :param ctx: Контекст.
@@ -36,20 +37,20 @@ async def listen_from_server(reader: asyncio.StreamReader, ctx: Context):
                 break
 
             data = data.strip()
-            if not data: 
+            if not data:
                 continue
 
             if ctx.cipher:
                 try:
                     decrypted = ctx.cipher.decrypt(data)
-                    message_str = decrypted.decode('utf-8')
+                    message_str = decrypted.decode("utf-8")
                 except Exception as e:
                     log_error(f"Ошибка дешифровки: {e}")
-            
+
             else:
                 log_error(f"Raw сообщение: {data}")
                 continue
-            
+
             try:
                 response_dict = json.loads(message_str)
                 action = response_dict.get("action")
@@ -57,7 +58,9 @@ async def listen_from_server(reader: asyncio.StreamReader, ctx: Context):
 
                 if action == "auth_success":
                     ctx.token = content
-                    log_ok("\n[SYSTEM]: Успешная авторизация: Токен успешно установлен!\n")
+                    log_ok(
+                        "\n[SYSTEM]: Успешная авторизация: Токен успешно установлен!\n"
+                    )
                 elif action == "user_list_result":
                     users = json.loads(content)
                     if not users:
@@ -66,13 +69,17 @@ async def listen_from_server(reader: asyncio.StreamReader, ctx: Context):
                         log_ok(f"\n{'ID':<5} | {'LOGIN':<15} | {'USERNAME':<20}")
                         log_ok("-" * 45)
                         for u in users:
-                            log_info(f"{u['id']:<5} | {u['login']:<15} | {u['username']:<20}")
+                            log_info(
+                                f"{u['id']:<5} | {u['login']:<15} | {u['username']:<20}"
+                            )
                         log_ok("-" * 45 + "\n")
                 elif action == "new_message":
-                    msg_dict = json.loads(content) 
+                    msg_dict = json.loads(content)
                     msg = IncomingMessagePacket(**msg_dict)
-                    
-                    log_notify(f"\n>>> НОВОЕ СООБЩЕНИЕ ОТ {msg.sender_login} (ID {msg.sender_id}):")
+
+                    log_notify(
+                        f"\n>>> НОВОЕ СООБЩЕНИЕ ОТ {msg.sender_login} (ID {msg.sender_id}):"
+                    )
                     log_info(f"    {msg.content}")
                     log_notify(">>>\n")
                 elif action == "message_history_result":
@@ -82,10 +89,10 @@ async def listen_from_server(reader: asyncio.StreamReader, ctx: Context):
                     else:
                         log_ok(f"\n{'- НАЧАЛО ИСТОРИИ -':^50}")
                         for item in history:
-                            prefix = "Вы" if item['is_me'] else item['sender_login']
-                            time_str = item['timestamp'].replace('T', ' ')[:16]
-                            
-                            if item['is_me']:
+                            prefix = "Вы" if item["is_me"] else item["sender_login"]
+                            time_str = item["timestamp"].replace("T", " ")[:16]
+
+                            if item["is_me"]:
                                 log_info(f"[{time_str}] {prefix}: {item['content']}")
                             else:
                                 log_notify(f"[{time_str}] {prefix}: {item['content']}")
@@ -103,10 +110,11 @@ async def listen_from_server(reader: asyncio.StreamReader, ctx: Context):
     except Exception as e:
         log_error(f"Ошибка чтения: {e}")
 
+
 async def user_input_loop(ctx: Context):
     """
     Слушает ввод пользователя.
-    
+
     :param ctx: Контест.
     :type ctx: Context
     """
@@ -120,22 +128,25 @@ async def user_input_loop(ctx: Context):
     router.register_controller(UsersController)
     router.register_controller(ChatController)
     router.register_controller(TokenController)
-    
+
     session = PromptSession()
 
     log_notify("Консольный мессенджер! Введите команду (например /login или /register)")
 
     while True:
-        try: 
+        try:
             line = await session.prompt_async(">>> ", style=style)
             await router.dispatch(line)
         except (EOFError, KeyboardInterrupt):
             return
 
-async def perform_handshake(reader: asyncio.StreamReader, writer: asyncio.StreamWriter, ctx: Context):
+
+async def perform_handshake(
+    reader: asyncio.StreamReader, writer: asyncio.StreamWriter, ctx: Context
+):
     """
     Проведение хендшейка с сервером: обмен Fernet ключами.
-    
+
     :param reader: Поток чтения.
     :type reader: asyncio.StreamReader
     :param writer: Поток записи.
@@ -147,7 +158,7 @@ async def perform_handshake(reader: asyncio.StreamReader, writer: asyncio.Stream
         pem_base64 = await reader.readline()
         if not pem_base64:
             raise ConnectionError("Сервер закрыл соединение")
-        
+
         pem_bytes = base64.b64decode(pem_base64)
         server_public_key = security.pem_to_public_key(pem_bytes)
 
@@ -164,6 +175,7 @@ async def perform_handshake(reader: asyncio.StreamReader, writer: asyncio.Stream
     except Exception as e:
         log_error(f"Ошибка HANDSHAKE: {e}")
 
+
 def parse_args():
     """
     Парсинг аргументов.
@@ -172,6 +184,7 @@ def parse_args():
     parser.add_argument("--host", type=str, default="127.0.0.1", help="IP Сервера")
     parser.add_argument("--port", type=int, default=12000, help="Порт")
     return parser.parse_args()
+
 
 async def main():
     """
@@ -186,7 +199,7 @@ async def main():
         except ConnectionError as ex:
             log_error(f"Не удалось подключиться к серверу: {ex}")
             return
-        
+
         ctx = Context(writer)
 
         try:
@@ -197,8 +210,7 @@ async def main():
 
         listener_task = asyncio.create_task(listen_from_server(reader, ctx))
 
-        
-        try: 
+        try:
             await user_input_loop(ctx)
         finally:
             listener_task.cancel()
@@ -206,6 +218,7 @@ async def main():
             await writer.wait_closed()
 
             log_info("Соединение закрыто")
+
 
 if __name__ == "__main__":
     try:

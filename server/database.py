@@ -5,10 +5,11 @@ from sqlalchemy.orm import sessionmaker
 engine = None
 async_session = None
 
+
 def setup_database(db_path: str):
     """
     Настройка базы данных.
-    
+
     :param db_path: Путь к базе данных
     :type db_path: str
     """
@@ -24,9 +25,9 @@ def setup_database(db_path: str):
 async def init_db():
     """Создание таблиц"""
     if engine is None:
-        raise RuntimeError("База данных не инициализирована. Вызовите setup_database() для начала.")
+        raise RuntimeError(
+            "База данных не инициализирована. Вызовите setup_database() для начала."
+        )
 
     async with engine.begin() as connection:
         await connection.run_sync(SQLModel.metadata.create_all)
-
-
