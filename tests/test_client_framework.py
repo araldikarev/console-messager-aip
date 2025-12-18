@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import patch
+
 from client.framework import CommandRouter, Context, command
 
 
@@ -22,16 +23,16 @@ class MockController:
         self.last_argument = None
 
     @command("test")
-    async def test_command(self, random_arg: str):
+    async def test_command(self, last_arg: str):
         """
         Тестовая команда
 
         :param self: self
-        :param arg1: Случайный аргумент
-        :type arg1: str
+        :param last_arg: Последний аргумент
+        :type last_arg: str
         """
         self.called = True
-        self.last_argument = random_arg
+        self.last_argument = last_arg
 
     @command("math")
     async def math_command(self, num: int):
@@ -62,6 +63,21 @@ async def test_router_registration():
 
     assert "test" in router.root.children
     assert "math" in router.root.children
+
+
+async def test_router_registration_bad_controller_raises():
+    """Негативный тест: контроллер, не принимающий контекст, вызывает TypeError"""
+
+    class BadController:
+        def __init__(self):
+            pass
+
+    mock_writer = MockWriter()
+    ctx = Context(mock_writer)
+    router = CommandRouter(ctx)
+
+    with pytest.raises(TypeError):
+        router.register_controller(BadController)
 
 
 async def test_dispatch_simple_command():

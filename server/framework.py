@@ -1,10 +1,10 @@
 import asyncio
 import inspect
-
 from typing import Callable, Dict, Type
+from functools import wraps
+
 from pydantic import BaseModel, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
-from functools import wraps
 
 from dto.models import ServerResponse
 from security import verify_jwt

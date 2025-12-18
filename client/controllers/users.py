@@ -1,7 +1,7 @@
 from client.controllers.base import BaseController
 from client.framework import command
-from dto.models import UserListRequest
 from client.logger import log_info
+from dto.models import UserListRequest
 
 
 class UsersController(BaseController):

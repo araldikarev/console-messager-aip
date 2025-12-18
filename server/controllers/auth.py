@@ -1,9 +1,10 @@
+from sqlmodel import select
+from sqlalchemy.exc import IntegrityError
+
+import security
+from server.db_models import User
 from server.framework import BaseController, action, CONNECTED_USERS
 from dto.models import LoginRequest, RegisterRequest
-from sqlmodel import select
-from server.db_models import User
-from sqlalchemy.exc import IntegrityError
-import security
 
 
 class AuthController(BaseController):

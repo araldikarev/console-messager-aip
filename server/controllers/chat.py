@@ -1,5 +1,7 @@
 import json
+
 from sqlmodel import select, or_, and_, col
+
 from server.framework import BaseController, action, authorized, CONNECTED_USERS
 from server.db_models import Message, User
 from dto.models import SendMessageRequest, IncomingMessagePacket, HistoryRequest
@@ -51,7 +53,7 @@ class ChatController(BaseController):
                     message.is_readed = True
                     await session.commit()
                 except Exception as ex:
-                    print("Произошла ошибка при отправке сообщения: {e}")
+                    print(f"Произошла ошибка при отправке сообщения: {ex}")
 
             await self.ctx.reply_success("Сообщение отправлено!")
 

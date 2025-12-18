@@ -46,6 +46,7 @@ async def listen_from_server(reader: asyncio.StreamReader, ctx: Context):
                     message_str = decrypted.decode("utf-8")
                 except Exception as e:
                     log_error(f"Ошибка дешифровки: {e}")
+                    continue
 
             else:
                 log_error(f"Raw сообщение: {data}")

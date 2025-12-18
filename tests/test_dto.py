@@ -1,5 +1,6 @@
 import pytest
 from pydantic import ValidationError
+
 from dto.models import RegisterRequest, LoginRequest
 
 
@@ -15,7 +16,7 @@ def test_register_request_short_login():
     """Негативный тест: слишком короткий логин"""
     with pytest.raises(ValidationError):
         RegisterRequest(
-            login="no", username="User", password_hash="a" * 20  # менее 3 символов
+            login="no", username="User", password_hash="a" * 20  # менее 3 символов логин
         )
 
 
@@ -23,7 +24,7 @@ def test_register_request_short_hash():
     """Негативный тест: некорректный хеш пароля"""
     with pytest.raises(ValidationError):
         RegisterRequest(
-            login="user", username="User", password_hash="short"  # менее 20 символов
+            login="user", username="User", password_hash="short"  # менее 20 символов хеш пароля
         )
 
 
@@ -36,10 +37,10 @@ def test_login_request_defaults():
 def test_login_request_short_login():
     """Негативный тест: слишком короткий логин при входе"""
     with pytest.raises(ValidationError):
-        LoginRequest(login="yo", password_hash="a" * 20)  # Меньше 3 символов
+        LoginRequest(login="yo", password_hash="a" * 20)  # Меньше 3 символов логин
 
 
 def test_login_request_short_hash():
     """Негативный тест: короткий хеш пароля"""
     with pytest.raises(ValidationError):
-        LoginRequest(login="user", password_hash="short")  # Меньше 20 символов
+        LoginRequest(login="user", password_hash="short")  # Меньше 20 символов хеш пароля

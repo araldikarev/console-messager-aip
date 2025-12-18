@@ -1,8 +1,12 @@
 import jwt
 import datetime
 import pytest
-import security
+
 from cryptography.fernet import Fernet
+from cryptography.fernet import InvalidToken
+from cryptography.hazmat.primitives.asymmetric import rsa
+
+import security
 
 
 # region RSA Тесты
@@ -26,6 +30,38 @@ def test_rsa_encryption_and_decryption():
     assert decrypted == original_message
 
 
+def test_rsa_decrypt_with_wrong_private_key_raises():
+    """Негативный тест: расшифровка чужим ключом вызывает ошибку"""
+    _, public_1 = security.generate_rsa_keys()
+    private_2, _ = security.generate_rsa_keys()
+
+    encrypted = security.encrypt_rsa(public_1, b"hello")
+
+    with pytest.raises(Exception):
+        security.decrypt_rsa(private_2, encrypted)
+
+
+def test_rsa_encrypt_too_long_message_raises():
+    """Негативный тест: слишком длинное сообщение для RSA 2048"""
+    _, public_key = security.generate_rsa_keys()
+    message = b"a" * 1000
+
+    with pytest.raises(Exception):
+        security.encrypt_rsa(public_key, message)
+
+
+def test_rsa_keys_generation_failure(monkeypatch):
+    """Негативный тест: Падение generate_rsa_keys"""
+
+    def fail(*args, **kwargs):
+        raise RuntimeError("fail")
+
+    monkeypatch.setattr(rsa, "generate_private_key", fail)
+
+    with pytest.raises(RuntimeError):
+        security.generate_rsa_keys()
+
+
 # endregion
 
 
@@ -39,6 +75,19 @@ def test_fernet_encryption_and_decryption():
     encrypted = cipher.encrypt(message)
     decrypted = cipher.decrypt(encrypted)
     assert message == decrypted
+
+
+def test_fernet_decrypt_wrong_key_fails():
+    """Негативный тест: расшифровка Fernet неверным ключом"""
+    key1 = security.generate_fernet_key()
+    key2 = security.generate_fernet_key()
+    cipher1 = Fernet(key1)
+    cipher2 = Fernet(key2)
+
+    token = cipher1.encrypt(b"data")
+
+    with pytest.raises(InvalidToken):
+        cipher2.decrypt(token)
 
 
 # endregion
@@ -84,6 +133,12 @@ def test_jwt_expired():
 
     result = security.verify_jwt(expired_token)
     assert result is None
+
+
+def test_jwt_malformed_token_returns_none():
+    """Негативный тест: некорретный (формат) токен"""
+    security.setup_jwt("secret", "HS256", 1)
+    assert security.verify_jwt("not-a-jwt") is None
 
 
 # endregion

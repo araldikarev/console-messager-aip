@@ -1,7 +1,9 @@
 import inspect
 import asyncio
-from typing import Callable, Any, Dict, List
+from typing import Callable, Dict
+
 from pydantic import BaseModel
+
 from client.logger import log_info, log_error
 
 
@@ -119,7 +121,6 @@ class CommandRouter:
             parent_node = parent_node.children[cls_name]
             log_info(f"[ROUTER] Группа: {cls_name}")
 
-        # Поиск методов-команд
         for name, member in inspect.getmembers(instance, predicate=inspect.ismethod):
             if getattr(member, "_is_command_node", False):
                 cmd_name = getattr(member, "_cmd_name")
@@ -127,7 +128,6 @@ class CommandRouter:
                 current_node.add_child(leaf_node)
                 log_info(f"... -> Метод: {cmd_name}")
 
-        # Поиск подклассов-команд
         for name, member in inspect.getmembers(instance, predicate=inspect.isclass):
             if getattr(member, "_is_command_node", False):
                 self._scan_recursive(member, current_node)
@@ -147,7 +147,6 @@ class CommandRouter:
         if parts[0].startswith("/"):
             parts[0] = parts[0][1:]
 
-        # Роутинг по нодам
         node = self.root
         idx = 0
         while idx < len(parts):
@@ -163,7 +162,6 @@ class CommandRouter:
             log_info(f"Выберите нужную команду: {options}")
             return
 
-        # Вычленение аргументов для найденной команды
         handler = node.handler
 
         if handler is None:
@@ -174,7 +172,6 @@ class CommandRouter:
         signature = inspect.signature(handler)
         params = list(signature.parameters.values())
 
-        # Совмещение str аргументов (подобно params string)
         if len(raw_args) > len(params):
             last_param_idx = len(params) - 1
             if params[last_param_idx].annotation == str:
@@ -187,7 +184,6 @@ class CommandRouter:
             log_error(f"Ошибка аргументов. Формат: ... {node.name} {hint}")
             return
 
-        # Конвертация аргументов
         try:
             converted_args = []
             for i, param in enumerate(params):

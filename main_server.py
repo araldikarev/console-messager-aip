@@ -2,6 +2,7 @@ import asyncio
 import json
 import base64
 import argparse
+from pathlib import Path
 
 from cryptography.fernet import Fernet
 
@@ -96,15 +97,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Сервер консольного мессенджера")
     parser.add_argument("--host", type=str, default="127.0.0.1", help="IP Хоста")
     parser.add_argument("--port", type=int, default=12000, help="Порт")
-    parser.add_argument(
-        "--db-path",
-        type=str,
-        default="server/database.db",
-        help="Путь к SQLite базе данных",
-    )
-    parser.add_argument(
-        "--jwt-secret", default="UNSAFE_JWT_SECRET_KEY", help="JWT Секретный ключ"
-    )
+    parser.add_argument("--db-path", type=str, default="server/database.db", help="Путь к SQLite базе данных",)
+    parser.add_argument("--jwt-secret", default="UNSAFE_JWT_SECRET_KEY", help="JWT Секретный ключ")
     parser.add_argument("--jwt-algo", default="HS256", help="Алгоритм JWT")
     parser.add_argument("--jwt-exp", type=int, default=24, help="Часы истечения JWT")
     return parser.parse_args()
@@ -119,7 +113,9 @@ async def main():
 
     security.setup_jwt(args.jwt_secret, args.jwt_algo, args.jwt_exp)
 
-    session_maker = setup_database(args.db_path)
+    db_path = Path(args.db_path).as_posix()
+
+    session_maker = setup_database(db_path)
 
     await init_db()
 

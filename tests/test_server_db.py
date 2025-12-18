@@ -1,9 +1,10 @@
 import pytest
-import security
+
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import SQLModel, select
 
+import security
 from server.controllers.auth import AuthController
 from server.controllers.chat import ChatController
 from server.db_models import User, Message
@@ -136,3 +137,29 @@ async def test_chat_unauthorized_token(db_session_maker):
 
     assert ctx.replies[0][0] == "error"
     assert "Unauthorized" in ctx.replies[0][1]
+
+
+async def test_chat_receiver_not_found(db_session_maker):
+    """Негативный тест: отправка сообщения несуществующему пользователю"""
+    async with db_session_maker() as session:
+        user1 = User(login="user1", username="User 1", password_hash="123")
+        session.add(user1)
+        await session.commit()
+        user1_id = user1.id
+
+    ctx = MockServerContext(db_session_maker)
+    ctx.user_id = user1_id
+
+    controller = ChatController(ctx)
+    security.setup_jwt("secret", "HS256", 1)
+    token = security.create_jwt(user1_id, "User 1")
+
+    req = SendMessageRequest(token=token, receiver_id=99999, content="Привет")
+
+    await controller.send_message(req)
+
+    assert ctx.replies[0][0] == "error"
+
+    async with db_session_maker() as session:
+        result = await session.execute(select(Message))
+        assert result.scalars().all() == []

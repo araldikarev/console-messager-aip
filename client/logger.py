@@ -1,4 +1,5 @@
 import html
+
 from prompt_toolkit import print_formatted_text, HTML
 from prompt_toolkit.styles import Style
 

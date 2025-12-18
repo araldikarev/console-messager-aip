@@ -1,5 +1,6 @@
-﻿.venv
+.venv
 __pycache__
 database.db
 .env
 fix_encoding.py
+.pytest_cache

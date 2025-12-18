@@ -1,9 +1,4 @@
-import sys
-import os
 import pytest
-
-sys.path.append(os.getcwd())
-
 
 @pytest.fixture(scope="session")
 def event_loop():
