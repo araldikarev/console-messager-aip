@@ -10,7 +10,7 @@ class UsersController(BaseController):
     async def list_users(self, page: int = 1):
         """
         Вывод списка пользователей
-        /users [Номер страницы]
+        /users <номер страницы>
 
         :param page: Страница
         :type page: int
@@ -23,7 +23,7 @@ class UsersController(BaseController):
     async def find_users(self, query: str):
         """
         Поиск пользователей
-        /find [Username или Login]
+        /find <username или login>
 
         :param query: Username | Login
         :type query: str

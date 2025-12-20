@@ -8,6 +8,7 @@ import security
 from server.controllers.auth import AuthController
 from server.controllers.chat import ChatController
 from server.db_models import User, Message
+from server.exceptions import UnauthorizedError
 from dto.models import RegisterRequest, SendMessageRequest
 
 
@@ -133,10 +134,8 @@ async def test_chat_unauthorized_token(db_session_maker):
 
     msg_req = SendMessageRequest(receiver_id=1, content="Сообщение.", token=bad_token)
 
-    await controller.send_message(msg_req)
-
-    assert ctx.replies[0][0] == "error"
-    assert "Unauthorized" in ctx.replies[0][1]
+    with pytest.raises(UnauthorizedError): 
+        await controller.send_message(msg_req)
 
 
 async def test_chat_receiver_not_found(db_session_maker):

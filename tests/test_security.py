@@ -6,6 +6,7 @@ from cryptography.fernet import Fernet
 from cryptography.fernet import InvalidToken
 from cryptography.hazmat.primitives.asymmetric import rsa
 
+from server.exceptions import InvalidTokenServerError, ExpiredSignatureServerError
 import security
 
 
@@ -113,8 +114,8 @@ def test_jwt_invalid():
     token = security.create_jwt(1, "User")
 
     security.setup_jwt("secret_B", "HS256", 1)
-    payload = security.verify_jwt(token)
-    assert payload is None
+    with pytest.raises(InvalidTokenServerError):
+        security.verify_jwt(token)
 
 
 def test_jwt_expired():
@@ -131,14 +132,15 @@ def test_jwt_expired():
     }
     expired_token = jwt.encode(payload, secret, algorithm=algo)
 
-    result = security.verify_jwt(expired_token)
-    assert result is None
+    with pytest.raises(ExpiredSignatureServerError):
+        security.verify_jwt(expired_token)
 
 
 def test_jwt_malformed_token_returns_none():
     """Негативный тест: некорретный (формат) токен"""
     security.setup_jwt("secret", "HS256", 1)
-    assert security.verify_jwt("not-a-jwt") is None
+    with pytest.raises(InvalidTokenServerError):
+        security.verify_jwt("not-a-jwt")
 
 
 # endregion

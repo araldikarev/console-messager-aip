@@ -7,6 +7,11 @@ from sqlmodel import SQLModel, Field
 class User(SQLModel, table=True):
     """
     Database модель пользователя.
+
+    :ivar id: ID пользователя.
+    :ivar login: Логин.
+    :ivar username: Username.
+    :ivar password_hash: Хеш пароля.
     """
 
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -18,6 +23,13 @@ class User(SQLModel, table=True):
 class Message(SQLModel, table=True):
     """
     Database модель сообщения.
+
+    :ivar id: ID сообщения.
+    :ivar sender_id: ID отправителя.
+    :ivar receiver_id: ID получателя.
+    :ivar content: Текст сообщения.
+    :ivar is_readed: Бул прочитанности сообщения.
+    :ivar timestamp: Время создания сообщения (UTC).
     """
 
     id: Optional[int] = Field(default=None, primary_key=True)

@@ -12,6 +12,8 @@ def setup_database(db_path: str):
 
     :param db_path: Путь к базе данных
     :type db_path: str
+    :return: Фабрика БД сессий.
+    :rtype: sessionmaker
     """
     global engine, async_session
 
@@ -23,7 +25,11 @@ def setup_database(db_path: str):
 
 
 async def init_db():
-    """Создание таблиц"""
+    """
+    Создание таблиц
+
+    :raises RuntimeError: Если база данных не инициализирована (engine is None).
+    """
     if engine is None:
         raise RuntimeError(
             "База данных не инициализирована. Вызовите setup_database() для начала."

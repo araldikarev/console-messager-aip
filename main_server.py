@@ -11,8 +11,9 @@ from server.framework import ServerRouter, ServerContext
 from server.controllers.auth import AuthController
 from server.controllers.users import UsersController
 from server.controllers.chat import ChatController
-from server.database import init_db, setup_database
+from server import database
 from server.framework import CONNECTED_USERS
+from server.exceptions import ServerException
 
 SERVER_PRIVATE_KEY = None
 SERVER_PUBLIC_KEY = None
@@ -75,6 +76,8 @@ async def handle_client(
 
                 base_data = json.loads(message_str)
                 await router.dispatch(ctx, base_data)
+            except ServerException as e:
+                await ctx.reply_error(f"{e.__class__.__name__}: {e}")
             except json.JSONDecodeError:
                 print("Недействительный JSON")
                 continue
@@ -93,6 +96,9 @@ async def handle_client(
 def parse_args():
     """
     Парсинг аргументов.
+
+    :return: Аргументы командной строки.
+    :rtype: argparse.Namespace
     """
     parser = argparse.ArgumentParser(description="Сервер консольного мессенджера")
     parser.add_argument("--host", type=str, default="127.0.0.1", help="IP Хоста")
@@ -115,9 +121,9 @@ async def main():
 
     db_path = Path(args.db_path).as_posix()
 
-    session_maker = setup_database(db_path)
+    session_maker = database.setup_database(db_path)
 
-    await init_db()
+    await database.init_db()
 
     print("Генерация RSA ключей сервера...")
     SERVER_PRIVATE_KEY, SERVER_PUBLIC_KEY = security.generate_rsa_keys()
@@ -126,12 +132,19 @@ async def main():
     server_handler = lambda reader, writer: handle_client(reader, writer, session_maker)
 
     server = await asyncio.start_server(server_handler, args.host, args.port)
-    async with server:
-        print(
-            f"Поднятие сервера на {args.host}:{args.port} (Путь к бд: {args.db_path})"
-        )
-        await server.serve_forever()
-
+    try:
+        async with server:
+            print(
+                f"Поднятие сервера на {args.host}:{args.port} (Путь к бд: {args.db_path})"
+            )
+            await server.serve_forever()
+    except asyncio.CancelledError:
+        print("\n[SYSTEM] Получен сигнал остановки сервера...")
+    finally:
+        if database.engine:
+            await database.engine.dispose()
+            print("[SYSTEM] Соединение с БД успешно закрыто.")
+        print("[SYSTEM] Сервер остановлен.")
 
 if __name__ == "__main__":
     try:

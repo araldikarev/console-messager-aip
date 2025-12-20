@@ -6,13 +6,15 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 
+from server.exceptions import ExpiredSignatureServerError, InvalidTokenServerError
 
-# region RSA логика
+
 def generate_rsa_keys():
     """
     Генерирует пару RSA 2048 ключей
 
     :return: Приватный и публичный ключи.
+    :rtype: tuple
     """
     private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     public_key = private_key.public_key()
@@ -88,11 +90,6 @@ def decrypt_rsa(private_key, b64_ciphered: bytes) -> bytes:
     return plain_text
 
 
-# endregion
-
-# region FERNET
-
-
 def generate_fernet_key() -> bytes:
     """
     Генерирует симметричный ключ Fernet
@@ -131,9 +128,6 @@ def decrypt_fernet(fernet: Fernet, data: bytes) -> bytes:
     return fernet.decrypt(data)
 
 
-# endregion
-
-# region JWT
 CONFIG = {
     "JWT_SECRET": "DEFAULT_UNSAFE_SECRET",
     "JWT_ALGORITHM": "HS256",
@@ -188,18 +182,15 @@ def verify_jwt(token: str) -> dict | None:
     :type token: str
     :return: Payload JWT токена.
     :rtype: dict | None
+    :raises ExpiredSignatureServerError: Если срок действия токена истёк.
+    :raises InvalidTokenServerError: Если токен невалиден.
     """
     try:
         payload = jwt.decode(
             jwt=token, key=CONFIG["JWT_SECRET"], algorithms=CONFIG["JWT_ALGORITHM"]
         )
         return payload
-    except jwt.ExpiredSignatureError:
-        print("Token expired")
-        return None
-    except jwt.InvalidTokenError:
-        print("Invalid token")
-        return None
-
-
-# endregion
+    except jwt.ExpiredSignatureError as e:
+        raise ExpiredSignatureServerError("Срок действия токена истёк") from e
+    except jwt.InvalidTokenError as e:
+        raise InvalidTokenServerError("Неверный токен") from e

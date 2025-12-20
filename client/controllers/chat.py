@@ -3,13 +3,14 @@ from client.framework import command
 from client.logger import log_info
 from dto.models import SendMessageRequest, HistoryRequest
 
+
 class ChatController(BaseController):
 
     @command("msg")
     async def send_msg(self, user_id: int, content: str):
         """
         Отправка сообщения.
-        /msg <ID пользователя> <Текст сообщения>
+        /msg <ID пользователя> <текст сообщения>
 
         :param self: self
         :param user_id: ID получателя.

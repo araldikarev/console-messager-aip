@@ -7,6 +7,14 @@ from pydantic import BaseModel, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from dto.models import ServerResponse
+from server.exceptions import (
+    UnauthorizedError,
+    ServerException,
+    MissingActionError,
+    UnknownActionError,
+    PacketValidationError,
+    InternalServerError,
+)
 from security import verify_jwt
 
 CONNECTED_USERS: Dict[int, "ServerContext"] = {}
@@ -23,6 +31,15 @@ class ServerContext:
         writer: asyncio.StreamWriter,
         db_session_maker,
     ):
+        """
+        Создаёт контекст серверного соединения.
+
+        :param reader: Поток чтения.
+        :type reader: asyncio.StreamReader
+        :param writer: Поток записи.
+        :type writer: asyncio.StreamWriter
+        :param db_session_maker: Фабрика асинхронных сессий БД.
+        """
         self.reader = reader
         self.writer = writer
         self.db_session_maker = db_session_maker
@@ -32,7 +49,7 @@ class ServerContext:
 
     async def reply(self, status: str, data: str | None = None):
         """
-        Функция для ответа клиенту.
+        Отправляет ответ клиенту с заданным статусом.
 
         :param self: self
         :param status: Статус ответа (success, error и тд)
@@ -52,12 +69,34 @@ class ServerContext:
         await self.writer.drain()
 
     async def reply_error(self, error_messgage: str):
+        """
+        Отправляет ответ клиенту с статусом `ошибка`.
+
+        :param self: self
+        :param error_messgage: Текст ошибки.
+        :type error_messgage: str
+        """
         await self.reply("error", error_messgage)
 
     async def reply_success(self, success_message: str):
+        """
+        Отправляет ответ клиенту с статусом `успех`.
+
+        :param self: self
+        :param success_message: Текст сообщения об успехе.
+        :type success_message: str
+        """
         await self.reply("success", success_message)
 
     def create_session(self) -> AsyncSession:
+        """
+        Создает новую сессию БД.
+
+        :param self: self
+        :return: Асинхронная сессия.
+        :rtype: AsyncSession
+        """
+
         return self.db_session_maker()
 
 
@@ -67,6 +106,8 @@ def action(name: str):
 
     :param name: Название эндпоинта для роутинга
     :type name: str
+    :return: Функция-декоратор с _action_name.
+    :rtype: Callable
     """
 
     def decorator(func):
@@ -81,18 +122,18 @@ def authorized(func):
     Декоратор проверки авторизации.
 
     :param func: Функция
+    :return: Функция-декоратор с проверкой токена.
+    :rtype: Callable
     """
 
     @wraps(func)
     async def wrapper(self: BaseController, req: BaseModel):
         if not req.token:
-            await self.ctx.reply_error("Unauthorized: Нет токена в запросе.")
-            return
+            raise UnauthorizedError("Нет токена в запросе.")
 
         payload = verify_jwt(req.token)
         if not payload:
-            await self.ctx.reply_error("Unauthorized: Невалидный токен")
-            return
+            raise UnauthorizedError("Unauthorized: Невалидный токен")
 
         self.ctx.user_id = int(payload["sub"])
         await func(self, req)
@@ -147,13 +188,11 @@ class ServerRouter:
         action_name = raw_json.get("action")
 
         if not action_name:
-            await ctx.reply_error("Не найден эндпоинт")
-            return
+            raise MissingActionError("Не найден эндпоинт")
 
         handler_info = self.routes.get(action_name)
         if not handler_info:
-            await ctx.reply_error(f"Неизвестный action: {action_name}")
-            return
+            raise UnknownActionError(f"Неизвестный action: {action_name}")
 
         controller_cls, method = handler_info
 
@@ -171,8 +210,7 @@ class ServerRouter:
                     request = param_type.model_validate(raw_json)
                 except ValidationError as e:
                     print(f"Ошибка валидации JSON: {e}")
-                    await ctx.reply_error(f"Ошибка валидации JSON: {e}")
-                    return
+                    raise PacketValidationError(f"Ошибка валидации JSON: {e}") from e
             else:
                 request = raw_json
         try:
@@ -180,6 +218,7 @@ class ServerRouter:
                 await method(controller_instance, request)
             else:
                 await method(controller_instance)
+        except ServerException:
+            raise
         except Exception as e:
-            print(f"Внутренняя ошибка в хендлере: {e}")
-            await ctx.reply_error("Внутренняя ошибка сервера")
+            raise InternalServerError("Внутренняя ошибка сервера") from e

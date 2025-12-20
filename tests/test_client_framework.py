@@ -2,6 +2,10 @@ import pytest
 from unittest.mock import patch
 
 from client.framework import CommandRouter, Context, command
+from client.exceptions import (
+    ValueErrorCommandException,
+    ArgumentMismatchCommandException,
+)
 
 
 class MockWriter:
@@ -132,12 +136,8 @@ async def test_dispatch_wrong_argument_type():
     router = CommandRouter(ctx)
     router.register_controller(MockController)
 
-    node = router.root.children["math"]
-    controller_instance = node.handler.__self__
-
-    await router.dispatch("/math abc")
-
-    assert controller_instance.last_argument is None
+    with pytest.raises(ValueErrorCommandException):
+        await router.dispatch("/math abc")
 
 
 async def test_dispatch_wrong_argument_count():
@@ -147,9 +147,5 @@ async def test_dispatch_wrong_argument_count():
     router = CommandRouter(ctx)
     router.register_controller(MockController)
 
-    node = router.root.children["math"]
-    controller_instance = node.handler.__self__
-
-    await router.dispatch("/math")
-
-    assert controller_instance.last_argument is None
+    with pytest.raises(ArgumentMismatchCommandException):
+        await router.dispatch("/math")

@@ -4,16 +4,29 @@ from typing import Callable, Dict
 
 from pydantic import BaseModel
 
-from client.logger import log_info, log_error
+from client.logger import log_info
+from client.exceptions import (
+    UnknownCommandException,
+    ArgumentMismatchCommandException,
+    ValueErrorCommandException,
+    CommandException,
+)
 
 
 class Context:
     """Контекст: передаётся в контроллеры."""
 
     def __init__(self, writer: asyncio.StreamWriter):
+        """
+        Создаёт контекст клиента.
+
+        :param writer: Поток записи.
+        :type writer: asyncio.StreamWriter
+        """
         self._writer = writer
         self.cipher = None
         self.token: str | None = None
+        self.router = None
 
     async def send(self, packet: BaseModel):
         """
@@ -45,6 +58,8 @@ def command(name: str):
 
     :param name: Название команды.
     :type name: str
+    :return: Функция-декоратор.
+    :rtype: Callable
     """
 
     def decorator(target):
@@ -88,6 +103,12 @@ class CommandRouter:
     """Роутер зарегистрированных консольных команд."""
 
     def __init__(self, ctx: Context):
+        """
+        Создаёт роутер команд.
+
+        :param ctx: Контекст.
+        :type ctx: Context
+        """
         self.ctx = ctx
         self.root = CommandNode("root")
 
@@ -126,7 +147,7 @@ class CommandRouter:
                 cmd_name = getattr(member, "_cmd_name")
                 leaf_node = CommandNode(cmd_name, handler=member)
                 current_node.add_child(leaf_node)
-                log_info(f"... -> Метод: {cmd_name}")
+                log_info(f"Зарегистрирован метод: {cmd_name}")
 
         for name, member in inspect.getmembers(instance, predicate=inspect.isclass):
             if getattr(member, "_is_command_node", False):
@@ -165,8 +186,7 @@ class CommandRouter:
         handler = node.handler
 
         if handler is None:
-            log_error("Неизвестная команда")
-            return
+            raise UnknownCommandException("Неизвестная команда")
 
         raw_args = parts[idx:]
         signature = inspect.signature(handler)
@@ -181,8 +201,9 @@ class CommandRouter:
 
         if len(raw_args) != len(params):
             hint = " ".join([f"<{p.name}:{p.annotation.__name__}>" for p in params])
-            log_error(f"Ошибка аргументов. Формат: ... {node.name} {hint}")
-            return
+            raise ArgumentMismatchCommandException(
+                f"Ошибка аргументов. Формат: ... {node.name} {hint}"
+            )
 
         try:
             converted_args = []
@@ -196,6 +217,6 @@ class CommandRouter:
 
             await handler(*converted_args)
         except ValueError as e:
-            log_error(f"Неверный тип данных: {e}")
+            raise ValueErrorCommandException(f"Неверный тип данных: {e}") from e
         except Exception as e:
-            log_error(f"Ошибка выполнения: {e}")
+            raise CommandException(f"Ошибка выполнения: {e}") from e

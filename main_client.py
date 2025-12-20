@@ -14,8 +14,10 @@ from client.controllers.auth import AuthController
 from client.controllers.users import UsersController
 from client.controllers.token import TokenController
 from client.controllers.chat import ChatController
+from client.controllers.system import SystemController
 from client.logger import log_ok, log_info, log_notify, log_error, style
 from dto.models import IncomingMessagePacket
+from client.exceptions import CommandException
 
 handshake_completed = asyncio.Event()
 
@@ -125,19 +127,28 @@ async def user_input_loop(ctx: Context):
     log_ok("Handshake успешно произведен!")
 
     router = CommandRouter(ctx)
+
+    ctx.router = router
+
     router.register_controller(AuthController)
     router.register_controller(UsersController)
     router.register_controller(ChatController)
     router.register_controller(TokenController)
+    router.register_controller(SystemController)
 
     session = PromptSession()
 
     log_notify("Консольный мессенджер! Введите команду (например /login или /register)")
 
+    system_ctrl = SystemController(ctx)
+    await system_ctrl.help_command()
+
     while True:
         try:
             line = await session.prompt_async(">>> ", style=style)
             await router.dispatch(line)
+        except CommandException as ex:
+            log_error(f"{ex.__class__.__name__}: {ex}")
         except (EOFError, KeyboardInterrupt):
             return
 
@@ -180,6 +191,9 @@ async def perform_handshake(
 def parse_args():
     """
     Парсинг аргументов.
+
+    :return: Аргументы командной строки..
+    :rtype: argparse.Namespace
     """
     parser = argparse.ArgumentParser(description="Клиент консольного мессенджера")
     parser.add_argument("--host", type=str, default="127.0.0.1", help="IP Сервера")
