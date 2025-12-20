@@ -5,6 +5,9 @@ from dto.models import SendMessageRequest, HistoryRequest
 
 
 class ChatController(BaseController):
+    """ 
+    Контроллер сообщений.
+    """
 
     @command("msg")
     async def send_msg(self, user_id: int, content: str):

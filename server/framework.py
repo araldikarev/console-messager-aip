@@ -111,6 +111,14 @@ def action(name: str):
     """
 
     def decorator(func):
+        """
+        Декоратор функции.
+        
+        :param func: Функция.
+        :type func: Callable
+        :return: Та же функция с добавленным атрибутом _action_name.
+        :rtype: Callable
+        """
         func._action_name = name
         return func
 
@@ -128,6 +136,14 @@ def authorized(func):
 
     @wraps(func)
     async def wrapper(self: BaseController, req: BaseModel):
+        """
+        Враппер для контроллера.
+        
+        :param self: self
+        :type self: BaseController
+        :param req: Данные.
+        :type req: BaseModel
+        """
         if not req.token:
             raise UnauthorizedError("Нет токена в запросе.")
 
@@ -146,6 +162,13 @@ class BaseController:
     """Класс-провайдер контекста."""
 
     def __init__(self, ctx: ServerContext):
+        """
+        Инициализирует базовый контроллер.
+        
+        :param self: self
+        :param ctx: Контекст.
+        :type ctx: ServerContext
+        """
         self.ctx = ctx
 
 
@@ -155,6 +178,7 @@ class ServerRouter:
     """
 
     def __init__(self):
+        """Инициализирует роутер."""
         self.routes: Dict[str, tuple[Type[BaseController], Callable]] = {}
 
     def register(self, controller_cls: Type[BaseController]):

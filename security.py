@@ -116,7 +116,7 @@ def encrypt_fernet(fernet: Fernet, data: bytes) -> bytes:
 
 def decrypt_fernet(fernet: Fernet, data: bytes) -> bytes:
     """
-    Docstring for decrypt_fernet
+    Дешифрует с помощью симметричного ключа.
 
     :param fernet: Ключ Fernet.
     :type fernet: Fernet

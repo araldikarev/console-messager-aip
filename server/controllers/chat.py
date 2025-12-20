@@ -8,6 +8,9 @@ from dto.models import SendMessageRequest, IncomingMessagePacket, HistoryRequest
 
 
 class ChatController(BaseController):
+    """
+    Контроллер чатов с пользователями.
+    """
 
     @action(name="message")
     @authorized

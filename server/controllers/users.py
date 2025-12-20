@@ -8,6 +8,9 @@ from server.db_models import User
 
 
 class UsersController(BaseController):
+    """
+    Контроллер пользователей (листинг, поиск).
+    """
 
     @action("user_list")
     @authorized

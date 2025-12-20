@@ -6,6 +6,9 @@ from client.logger import log_info, log_ok
 
 
 class SystemController(BaseController):
+    """
+    Системный контроллер.
+    """
 
     @command("help")
     async def help_command(self):

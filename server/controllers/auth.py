@@ -8,6 +8,9 @@ from dto.models import LoginRequest, RegisterRequest
 
 
 class AuthController(BaseController):
+    """
+    Контроллер авторизации пользователей.
+    """
 
     @action("login")
     async def login(self, req: LoginRequest):

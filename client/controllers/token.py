@@ -4,6 +4,9 @@ from client.logger import log_ok, log_error
 
 
 class TokenController(BaseController):
+    """
+    Контроллер токена.
+    """
 
     @command("token")
     async def print_token(self):

@@ -6,6 +6,9 @@ from dto.models import LoginRequest, RegisterRequest
 
 
 class AuthController(BaseController):
+    """
+    Контроллер авторизации и регистрации.
+    """
 
     def _hash_password(self, password: str) -> str:
         """
@@ -40,7 +43,7 @@ class AuthController(BaseController):
     async def register(self, login: str, username: str, password: str):
         """
         Команда регистрации.
-        /login <login> <username> <password>
+        /register <login> <username> <password>
 
         :param self: self
         :param login: Логин пользователя.

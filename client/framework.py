@@ -63,6 +63,14 @@ def command(name: str):
     """
 
     def decorator(target):
+        """
+        Декоратор функции.
+        
+        :param target: Функция.
+        :type target: Callable
+        :return: Та же функция с добавленным атрибутом _cmd_name и _is_command_node. 
+        :rtype: Callable
+        """
         target._cmd_name = name
         target._is_command_node = True
         return target

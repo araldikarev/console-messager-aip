@@ -5,6 +5,9 @@ from dto.models import UserListRequest
 
 
 class UsersController(BaseController):
+    """
+    Контроллер пользователей.
+    """
 
     @command("users")
     async def list_users(self, page: int = 1):
